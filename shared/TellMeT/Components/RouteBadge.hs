@@ -8,8 +8,8 @@ import Miso.Html (Attribute, View, text, class_, span_, style_)
 import Miso.String (ms)
 
 import TellMeT.GTFS
-  ( Route, route_color, route_long_name, route_short_name, route_text_color
-  , route_type
+  ( Route, routeColor, routeLongName, routeShortName, routeTextColor
+  , routeType
   , RouteType ( LightRail, Subway, Rail, Bus, Ferry, CableCar, Gondola
               , Funicular
               )
@@ -27,9 +27,9 @@ viewRouteType Funicular = span_ [class_ "fas fa-subway"] []
 
 routeStyle :: Route -> Attribute action
 routeStyle route =
-  let fg = route_text_color route
+  let fg = routeTextColor route
       fg' = if fg == "" then id else at "color" ?~ ms ("#" <> fg)
-      bg = route_color route
+      bg = routeColor route
       bg' = if bg == "" then id else at "background-color" ?~ ms ("#" <> bg)
       attrs = fg' $ bg' $ mempty
   in style_ attrs
@@ -38,6 +38,6 @@ viewRouteBadge :: Route -> View action
 viewRouteBadge route =
   span_
   [class_ "badge", routeStyle route]
-  [viewRouteType $ route_type route, text $ ms $ name]
-  where short = route_short_name route
-        name = " " <> if short == "" then route_long_name route else short
+  [viewRouteType $ routeType route, text $ ms $ name]
+  where short = routeShortName route
+        name = " " <> if short == "" then routeLongName route else short

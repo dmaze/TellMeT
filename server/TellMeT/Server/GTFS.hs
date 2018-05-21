@@ -11,8 +11,6 @@ import Data.ByteString.Lazy (ByteString, readFile)
 import Data.Csv (FromNamedRecord, decodeByName)
 import Data.Default (def)
 import Data.Monoid ((<>))
-import Lens.Micro ((?~), at)
-import Lens.Micro.GHC ()
 import Prelude hiding (readFile)
 import TellMeT.GTFS
 

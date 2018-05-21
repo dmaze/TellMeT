@@ -5,7 +5,12 @@
 module TellMeT.Components.Fetcher where
 
 import Data.Default (Default (def))
-import Miso.String (MisoString, ms)
+import Miso.String
+  ( MisoString
+#ifdef __GHCJS__
+  , ms
+#endif
+  )
 
 #ifdef __GHCJS__
 import Control.Exception (catch)

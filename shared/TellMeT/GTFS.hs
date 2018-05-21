@@ -2,10 +2,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes #-}
 
+-- | Data representation of the General Transit Feed Specification.
+--
+-- This module has mostly straight ports of Google's GTFS CSV file
+-- formats; see <https://developers.google.com/transit/gtfs/>.  It
+-- includes instances for 'FromNamedRecord' to parse the GTFS files,
+-- and 'FromJSON' and 'ToJSON' to provide a REST interface.
 module TellMeT.GTFS where
 
 import Control.Applicative ((<|>))
-import Data.Aeson (FromJSON (parseJSON), ToJSON (toJSON), withText)
+import Data.Aeson
+  ( genericParseJSON, genericToJSON, withText
+  )
+import Data.Aeson.Types
+  ( FromJSON (parseJSON), ToJSON (toJSON), Options (fieldLabelModifier)
+  , camelTo2, defaultOptions
+  )
 import Data.Csv (FromNamedRecord (parseNamedRecord), (.:))
 import Data.Default (Default (def))
 import Data.Map (Map)
@@ -14,6 +26,7 @@ import GHC.Generics (Generic)
 import Lens.Micro (Lens', (?~), at)
 import Lens.Micro.GHC ()
 
+-- | Data extracted from an entire GTFS feed.
 data Feed = Feed { _agencies :: Map Text Agency
                  , _stops :: Map Text Stop
                  , _routes :: Map Text Route
@@ -25,36 +38,49 @@ instance Default Feed where
              , _routes = mempty
              }
 
+-- | Access the map of agency ID to agency for a feed.
 agencies :: Lens' Feed (Map Text Agency)
 agencies f feed = (\a -> feed { _agencies = a }) <$> f (_agencies feed)
 
+-- | Access the map of stop ID to stop for a feed.
 stops :: Lens' Feed (Map Text Stop)
 stops f feed = (\s -> feed { _stops = s }) <$> f (_stops feed)
 
+-- | Access the map of route ID to route for a feed.
 routes :: Lens' Feed (Map Text Route)
 routes f feed = (\r -> feed { _routes = r }) <$> f (_routes feed)
 
+-- | Things that have unique identifiers.
 class Identified a where
+  -- | The identifier for this object.
   identifier :: a -> Text
 
+-- | Add an identified object to a map, indexed by its identifier.
 putMap :: (Identified a) => Lens' t (Map Text a) -> a -> t -> t
 putMap part item = part . at (identifier item) ?~ item
 
-data Agency = Agency { agency_id :: Text
-                     , agency_name :: Text
-                     , agency_url :: Text
-                     , agency_timezone :: Text
-                     , agency_lang :: Maybe Text
-                     , agency_phone :: Maybe Text
-                     , agency_fare_url :: Maybe Text
-                     , agency_email :: Maybe Text
+jsonOptions :: Options
+jsonOptions = defaultOptions { fieldLabelModifier = camelTo2 '_' }
+
+-- | A transit agency, as described in a GTFS feed.
+data Agency = Agency { agencyId :: Text
+                     , agencyName :: Text
+                     , agencyUrl :: Text
+                     , agencyTimeZone :: Text
+                     , agencyLang :: Maybe Text
+                     , agencyPhone :: Maybe Text
+                     , agencyFareUrl :: Maybe Text
+                     , agencyEmail :: Maybe Text
                      } deriving (Eq, Show, Generic)
 
 instance Identified Agency where
-  identifier = agency_id
+  identifier = agencyId
 
-instance FromJSON Agency
-instance ToJSON Agency
+instance FromJSON Agency where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON Agency where
+  toJSON = genericToJSON jsonOptions
 
 instance FromNamedRecord Agency where
   parseNamedRecord m = Agency <$>
@@ -67,6 +93,7 @@ instance FromNamedRecord Agency where
     (m .: "agency_fare_url" <|> return Nothing) <*>
     (m .: "agency_email" <|> return Nothing)
 
+-- | The type of location in a 'Stop'.
 data LocationType = StopType | Station | Entrance
                   deriving (Eq, Enum, Ord, Show)
 instance FromJSON LocationType where
@@ -81,25 +108,29 @@ instance ToJSON LocationType where
   toJSON Station = toJSON ("station" :: Text)
   toJSON Entrance = toJSON ("entrance" :: Text)
 
-data Stop = Stop { stop_id :: Text
-                 , stop_code :: Text
-                 , stop_name :: Text
-                 , stop_desc :: Text
-                 , stop_lat :: Float
-                 , stop_lon :: Float
-                 , zone_id :: Text
-                 , stop_url :: Text
-                 , location_type :: LocationType
-                 , parent_station :: Text
-                 , stop_timezone :: Text
-                 , wheelchair_boarding :: Maybe Bool
+-- | A place where some transit vehicle stops.
+data Stop = Stop { stopId :: Text
+                 , stopCode :: Text
+                 , stopName :: Text
+                 , stopDesc :: Text
+                 , stopLat :: Float
+                 , stopLon :: Float
+                 , zoneId :: Text
+                 , stopUrl :: Text
+                 , locationType :: LocationType
+                 , parentStation :: Text
+                 , stopTimezone :: Text
+                 , wheelchairBoarding :: Maybe Bool
                  } deriving (Eq, Show, Generic)
 
 instance Identified Stop where
-  identifier = stop_id
+  identifier = stopId
 
-instance FromJSON Stop
-instance ToJSON Stop
+instance FromJSON Stop where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON Stop where
+  toJSON = genericToJSON jsonOptions
 
 instance FromNamedRecord Stop where
   parseNamedRecord m = Stop <$>
@@ -120,6 +151,7 @@ instance FromNamedRecord Stop where
           accessibility 2 = Just False
           accessibility _ = Nothing
 
+-- | The kind of vehicle serving a route.
 data RouteType = LightRail | Subway | Rail | Bus | Ferry | CableCar
                | Gondola | Funicular
                  deriving (Eq, Enum, Ord, Show)
@@ -145,23 +177,27 @@ instance ToJSON RouteType where
   toJSON Gondola = toJSON ("gondola" :: Text)
   toJSON Funicular = toJSON ("funicular" :: Text)
 
-data Route = Route { route_id :: Text
-                   , route_agency_id :: Text
-                   , route_short_name :: Text
-                   , route_long_name :: Text
-                   , route_desc :: Text
-                   , route_type :: RouteType
-                   , route_url :: Text
-                   , route_color :: Text
-                   , route_text_color :: Text
-                   , route_sort_order :: Int
+-- | A single transit route as described in a GTFS feed.
+data Route = Route { routeId :: Text
+                   , routeAgencyId :: Text
+                   , routeShortName :: Text
+                   , routeLongName :: Text
+                   , routeDesc :: Text
+                   , routeType :: RouteType
+                   , routeUrl :: Text
+                   , routeColor :: Text
+                   , routeTextColor :: Text
+                   , routeSortOrder :: Int
                    } deriving (Eq, Show, Generic)
 
 instance Identified Route where
-  identifier = route_id
+  identifier = routeId
 
-instance FromJSON Route
-instance ToJSON Route
+instance FromJSON Route where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON Route where
+  toJSON = genericToJSON jsonOptions
 
 instance FromNamedRecord Route where
   parseNamedRecord m = Route <$>
