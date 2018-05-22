@@ -37,6 +37,7 @@ import TellMeT.Model (initialModel)
 import TellMeT.REST (MapAPI, RestAPI)
 import TellMeT.Routes (ViewRoutes, linkHome, view404, viewModel)
 import TellMeT.Server.GTFS (readFeed)
+import TellMeT.Util (MapOf)
 
 data Options = Options { _optHelp :: Bool
                        , _optPort :: Int
@@ -105,7 +106,7 @@ restHandlers feed = mapHandlers agencies feed :<|>
                     mapHandlers stops feed :<|>
                     mapHandlers routes feed
 
-mapHandlers :: Lens' Feed (Map Text a) -> Feed -> Server (MapAPI a)
+mapHandlers :: Lens' Feed (MapOf Text a) -> Feed -> Server (MapAPI a)
 mapHandlers lens feed = return (feed ^.. lens . each) :<|>
                         \a -> maybe (throwError err404) return
                              (feed ^. lens . at a)
