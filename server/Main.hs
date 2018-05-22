@@ -11,7 +11,7 @@ import Data.Default (Default (def))
 import Data.Monoid ((<>))
 import Data.Proxy (Proxy (Proxy))
 import Data.Text (Text)
-import Lens.Micro (Lens', (^.), (^..), at, each, set)
+import Lens.Micro (Lens', (^.), (^..), at, each, filtered, set)
 import Lucid (ToHtml(toHtml, toHtmlRaw), renderBS,
               doctypehtml_, head_, title_, meta_, charset_, link_, rel_,
               href_, name_, content_,
@@ -31,9 +31,9 @@ import System.Environment (getArgs)
 
 import Paths_TellMeT (getDataDir)
 import TellMeT.Action (Action)
-import TellMeT.GTFS (Feed, agencies, stops, routes, trips)
+import TellMeT.GTFS (Feed, agencies, stops, routes, trips, tripRouteId)
 import TellMeT.Model (initialModel)
-import TellMeT.REST (MapAPI, RestAPI)
+import TellMeT.REST (MapAPI, RestAPI, RouteAPI, RouteTripsAPI)
 import TellMeT.Routes (ViewRoutes, linkHome, view404, viewModel)
 import TellMeT.Server.GTFS (readFeed)
 import TellMeT.Util (MapOf)
@@ -103,13 +103,22 @@ static = serveDirectory
 restHandlers :: Feed -> Server RestAPI
 restHandlers feed = mapHandlers agencies feed :<|>
                     mapHandlers stops feed :<|>
-                    mapHandlers routes feed :<|>
+                    routeHandlers feed :<|>
                     mapHandlers trips feed
 
 mapHandlers :: Lens' Feed (MapOf Text a) -> Feed -> Server (MapAPI a)
 mapHandlers lens feed = return (feed ^.. lens . each) :<|>
                         \a -> maybe (throwError err404) return
                              (feed ^. lens . at a)
+
+routeHandlers :: Feed -> Server RouteAPI
+routeHandlers feed = mapHandlers routes feed :<|>
+                     routeTripHandlers feed
+
+routeTripHandlers :: Feed -> Server RouteTripsAPI
+routeTripHandlers feed routeId =
+  -- An index on would be clever, huh.
+  return $ feed ^.. trips . each . filtered (\t -> tripRouteId t == routeId)
 
 type ServantRoutes = ToServerRoutes ViewRoutes HtmlPage Action
 

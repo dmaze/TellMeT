@@ -14,9 +14,14 @@ import TellMeT.Util (Identifier)
 type MapAPI a = Get '[JSON] [a] :<|>
                 Capture "id" (Identifier Text a) :> Get '[JSON] a
 
+type RouteTripsAPI = Capture "id" (Identifier Text Route) :> "trips" :> Get '[JSON] [Trip]
+
+type RouteAPI = MapAPI Route :<|> RouteTripsAPI
+
+
 type RestAPI = "api" :> ("agency" :> MapAPI Agency :<|>
                          "stop" :> MapAPI Stop :<|>
-                         "route" :> MapAPI Route :<|>
+                         "route" :> RouteAPI :<|>
                          "trip" :> MapAPI Trip)
 
 linkAgencies :: URI
