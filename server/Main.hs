@@ -8,7 +8,6 @@ module Main where
 
 import Control.Monad.Except (throwError)
 import Data.Default (Default (def))
-import Data.Map (Map)
 import Data.Monoid ((<>))
 import Data.Proxy (Proxy (Proxy))
 import Data.Text (Text)
@@ -32,7 +31,7 @@ import System.Environment (getArgs)
 
 import Paths_TellMeT (getDataDir)
 import TellMeT.Action (Action)
-import TellMeT.GTFS (Feed, agencies, stops, routes)
+import TellMeT.GTFS (Feed, agencies, stops, routes, trips)
 import TellMeT.Model (initialModel)
 import TellMeT.REST (MapAPI, RestAPI)
 import TellMeT.Routes (ViewRoutes, linkHome, view404, viewModel)
@@ -104,7 +103,8 @@ static = serveDirectory
 restHandlers :: Feed -> Server RestAPI
 restHandlers feed = mapHandlers agencies feed :<|>
                     mapHandlers stops feed :<|>
-                    mapHandlers routes feed
+                    mapHandlers routes feed :<|>
+                    mapHandlers trips feed
 
 mapHandlers :: Lens' Feed (MapOf Text a) -> Feed -> Server (MapAPI a)
 mapHandlers lens feed = return (feed ^.. lens . each) :<|>

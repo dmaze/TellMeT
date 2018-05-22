@@ -25,6 +25,7 @@ feedFromArchive zipBytes = do
   fs <- sequence [ feedFile True "agency.txt" archive (putMap agencies)
                 , feedFile True "stops.txt" archive (putMap stops)
                 , feedFile True "routes.txt" archive (putMap routes)
+                , feedFile True "trips.txt" archive (putMap trips)
                 ]
   return $ foldr (.) id fs $ def
 

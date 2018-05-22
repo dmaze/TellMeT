@@ -6,10 +6,11 @@ module TellMeT.Util where
 
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Map (Map, insert)
+import Web.HttpApiData (FromHttpApiData)
 
 -- | A unique identifier for some type.
 newtype Identifier k a = Identifier { unIdentifier :: k }
-                       deriving (Eq, Show, Ord, FromJSON, ToJSON)
+                       deriving (Eq, Show, Ord, FromJSON, ToJSON, FromHttpApiData)
 
 -- | Things that have unique identifiers.
 class Identified k a | a -> k where

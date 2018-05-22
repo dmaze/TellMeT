@@ -36,12 +36,14 @@ import TellMeT.Util
 data Feed = Feed { _agencies :: MapOf Text Agency
                  , _stops :: MapOf Text Stop
                  , _routes :: MapOf Text Route
+                 , _trips :: MapOf Text Trip
                  } deriving (Eq, Show)
 
 instance Default Feed where
   def = Feed { _agencies = mempty
              , _stops = mempty
              , _routes = mempty
+             , _trips = mempty
              }
 
 -- | Access the map of agency ID to agency for a feed.
@@ -56,12 +58,25 @@ stops f feed = (\s -> feed { _stops = s }) <$> f (_stops feed)
 routes :: Lens' Feed (MapOf Text Route)
 routes f feed = (\r -> feed { _routes = r }) <$> f (_routes feed)
 
+-- | Access the map of trip ID to trip for a feed.
+trips :: Lens' Feed (MapOf Text Trip)
+trips f feed = (\t -> feed { _trips = t}) <$> f (_trips feed)
+
 -- | Add an identified object to a map, indexed by its identifier.
 putMap :: (Ord k, Identified k a) => Lens' t (MapOf k a) -> a -> t -> t
 putMap part item = part . at (identifier item) ?~ item
 
 jsonOptions :: Options
 jsonOptions = defaultOptions { fieldLabelModifier = camelTo2 '_' }
+
+-- | Parse a numeric value used as maybe a Boolean.
+--
+-- This "type" appears in a couple of places, for instance indicating
+-- wheelchair accessibility or whether bicycles are allowed.
+maybeBool :: Int -> Maybe Bool
+maybeBool 1 = Just True
+maybeBool 2 = Just False
+maybeBool _ = Nothing
 
 -- | A transit agency, as described in a GTFS feed.
 data Agency = Agency { agencyId :: Identifier Text Agency
@@ -146,11 +161,7 @@ instance FromNamedRecord Stop where
     (toEnum <$> m .: "location_type" <|> return StopType) <*>
     (m .: "parent_station" <|> return "") <*>
     (m .: "stop_timezone" <|> return "") <*>
-    (accessibility <$> m .: "wheelchair_boarding" <|> return Nothing)
-    where accessibility :: Int -> Maybe Bool
-          accessibility 1 = Just True
-          accessibility 2 = Just False
-          accessibility _ = Nothing
+    (maybeBool <$> m .: "wheelchair_boarding" <|> return Nothing)
 
 -- | The kind of vehicle serving a route.
 data RouteType = LightRail | Subway | Rail | Bus | Ferry | CableCar
@@ -212,3 +223,38 @@ instance FromNamedRecord Route where
     (m .: "route_color" <|> return "FFFFFF") <*>
     (m .: "route_text_color" <|> return "000000") <*>
     (m .: "route_sort_order" <|> return 0)
+
+-- | A single trip as described in the GTFS feed.
+data Trip = Trip { tripRouteId :: Identifier Text Route
+                 , tripServiceId :: Text
+                 , tripId :: Identifier Text Trip
+                 , tripHeadsign :: Text
+                 , tripShortName :: Text
+                 , tripDirectionId :: Maybe Int
+                 , tripBlockId :: Text
+                 , tripShapeId :: Text
+                 , tripWheelchairAccessible :: Maybe Bool
+                 , tripBikesAllowed :: Maybe Bool
+                 } deriving (Eq, Show, Generic)
+
+instance Identified Text Trip where
+  identifier = tripId
+
+instance FromJSON Trip where
+  parseJSON = genericParseJSON jsonOptions
+
+instance ToJSON Trip where
+  toJSON = genericToJSON jsonOptions
+
+instance FromNamedRecord Trip where
+  parseNamedRecord m = Trip <$>
+    (Identifier <$> m .: "route_id") <*>
+    ({- Identifier <$> -} m .: "service_id") <*>
+    (Identifier <$> m .: "trip_id") <*>
+    m .: "trip_headsign" <*>
+    m .: "trip_short_name" <*>
+    (Just <$> m .: "direction_id" <|> return Nothing) <*>
+    m .: "block_id" <*>
+    m .: "shape_id" <*>
+    (maybeBool <$> m .: "wheelchair_accessible" <|> return Nothing) <*>
+    (maybeBool <$> m .: "bikes_allowed" <|> return Nothing)
