@@ -10,10 +10,16 @@ import TellMeT.Components.FeedFetcher
                     )
   )
 import TellMeT.Components.Fetcher (Fetcher)
+import TellMeT.Components.URI
+  ( URIAction ( changeURI, ifChangeURI
+              , handleURIChange, ifHandleURIChange
+              )
+  )
 import TellMeT.GTFS (Agency, Route)
 
 data Action = NoOp
             | ChangeURI URI
+            | HandleURIChange URI
             | FetchFeed
             | FetchedAgencies (Fetcher [Agency])
             | FetchedRoutes (Fetcher [Route])
@@ -21,6 +27,14 @@ data Action = NoOp
 
 instance Default Action where
   def = NoOp
+
+instance URIAction Action where
+  changeURI = ChangeURI
+  ifChangeURI (ChangeURI uri) f = f uri
+  ifChangeURI _ _ = return ()
+  handleURIChange = HandleURIChange
+  ifHandleURIChange (HandleURIChange uri) f = f uri
+  ifHandleURIChange _ _ = return ()
 
 instance FeedFetchAction Action where
   fetchFeed = FetchFeed

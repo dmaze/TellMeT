@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications #-}
 
+-- | Core client page routing.
 module TellMeT.Routes where
 
 import Data.Either (either)
@@ -14,7 +15,8 @@ import TellMeT.Action (Action)
 import TellMeT.Bootstrap (col_sm_, container_, row_)
 import TellMeT.Components.FeedFetcher (haveFeed, viewFeedFetch)
 import TellMeT.Components.RouteList (viewRouteList)
-import TellMeT.Model (Model, siteUri)
+import TellMeT.Components.URI (siteURI)
+import TellMeT.Model (Model)
 
 type ViewRoutes = Home
 
@@ -23,7 +25,7 @@ type Home = View Action
 viewModel :: Model -> View Action
 viewModel m =
   either (\_ -> view404) id $
-  runRoute (Proxy @ViewRoutes) viewTree (view siteUri) m
+  runRoute (Proxy @ViewRoutes) viewTree (view siteURI) m
 
 viewTree :: (Model -> View Action)
 viewTree = viewHome

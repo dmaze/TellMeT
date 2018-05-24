@@ -1,7 +1,6 @@
 module TellMeT.Model where
 
 import Data.Default (def)
-import Lens.Micro (Lens')
 import Network.URI (URI)
 
 import TellMeT.Components.FeedFetcher
@@ -9,6 +8,7 @@ import TellMeT.Components.FeedFetcher
   , FeedFetcher (fetchAgencies, fetchRoutes)
   )
 import TellMeT.Components.Fetcher (Fetcher)
+import TellMeT.Components.URI (SiteURI (siteURI))
 import TellMeT.GTFS (Agency, Feed, Route)
 
 data Model = Model { _siteUri :: URI
@@ -17,8 +17,8 @@ data Model = Model { _siteUri :: URI
                    , _fetchRoutes :: Fetcher [Route]
                    } deriving (Eq, Show)
 
-siteUri :: Lens' Model URI
-siteUri f m = (\u -> m { _siteUri = u }) <$> f (_siteUri m)
+instance SiteURI Model where
+  siteURI f m = (\u -> m { _siteUri = u }) <$> f (_siteUri m)
 
 instance HasFeed Model where
   theFeed f m = (\g -> m { _theFeed = g }) <$> f (_theFeed m)
