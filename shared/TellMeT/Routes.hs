@@ -12,7 +12,7 @@ import Network.URI (URI)
 import Servant.API (safeLink)
 
 import TellMeT.Action (Action)
-import TellMeT.Bootstrap (col_sm_, container_, row_)
+import TellMeT.Components.Chrome (viewChrome)
 import TellMeT.Components.FeedFetcher (haveFeed, viewFeedFetch)
 import TellMeT.Components.RouteList (viewRouteList)
 import TellMeT.Components.URI (siteURI)
@@ -31,15 +31,10 @@ viewTree :: (Model -> View Action)
 viewTree = viewHome
 
 viewHome :: Model -> View Action
-viewHome m = container_ [
-  row_ [
-      col_sm_ [
-          if haveFeed m
-          then viewRouteList m
-          else viewFeedFetch m
-          ]
-      ]
-  ]
+viewHome m = viewChrome linkHome inner
+  where inner = if haveFeed m
+                then viewRouteList m
+                else viewFeedFetch m
 
 linkHome :: URI
 linkHome = safeLink (Proxy @ViewRoutes) (Proxy @Home)

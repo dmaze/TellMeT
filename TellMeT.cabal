@@ -18,6 +18,7 @@ library
   hs-source-dirs:     shared
   exposed-modules:    TellMeT.Action
                     , TellMeT.Bootstrap
+                    , TellMeT.Components.Chrome
                     , TellMeT.Components.FeedFetcher
                     , TellMeT.Components.Fetcher
                     , TellMeT.Components.RouteBadge
