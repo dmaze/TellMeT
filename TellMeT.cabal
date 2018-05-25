@@ -23,9 +23,11 @@ library
                     , TellMeT.Components.Fetcher
                     , TellMeT.Components.RouteBadge
                     , TellMeT.Components.RouteList
+                    , TellMeT.Components.RoutePage
                     , TellMeT.Components.URI
                     , TellMeT.GTFS
                     , TellMeT.Model
+                    , TellMeT.Pages
                     , TellMeT.REST
                     , TellMeT.Routes
                     , TellMeT.Util

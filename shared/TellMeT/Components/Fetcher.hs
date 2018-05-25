@@ -52,7 +52,7 @@ instance Default (Fetcher a) where
 #ifdef __GHCJS__
 fetch :: (FromJSON a) => URI -> IO (Fetcher a)
 fetch uri =
-  let request = Request GET (ms $ show uri) Nothing [] False NoData
+  let request = Request GET (ms $ "/" <> show uri) Nothing [] False NoData
       fromError (XHRError t) = return $ FetchFailed (ms t)
       fromError XHRAborted = return $ FetchFailed "request aborted"
       fromByteString bs = case eitherDecode' (fromStrict bs) of

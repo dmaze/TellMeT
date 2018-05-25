@@ -19,6 +19,7 @@ import Lucid (ToHtml(toHtml, toHtmlRaw), renderBS,
 import Lucid.Base (makeAttribute)
 import Miso (ToServerRoutes, View)
 import Network.HTTP.Types (status404)
+import Network.URI (URI)
 import Network.Wai (Application, responseLBS)
 import Network.Wai.Handler.Warp (run)
 import Network.Wai.Middleware.RequestLogger (logStdout)
@@ -31,12 +32,13 @@ import System.Environment (getArgs)
 
 import Paths_TellMeT (getDataDir)
 import TellMeT.Action (Action)
-import TellMeT.GTFS (Feed, agencies, stops, routes, trips, tripRouteId)
+import TellMeT.GTFS (Feed, Route, agencies, stops, routes, trips, tripRouteId)
 import TellMeT.Model (initialModel)
 import TellMeT.REST (MapAPI, RestAPI, RouteAPI, RouteTripsAPI)
-import TellMeT.Routes (ViewRoutes, linkHome, view404, viewModel)
+import TellMeT.Pages (ViewRoutes, linkHome, linkRoute)
+import TellMeT.Routes (view404, viewModel)
 import TellMeT.Server.GTFS (readFeed)
-import TellMeT.Util (MapOf)
+import TellMeT.Util (Identifier, MapOf)
 
 data Options = Options { _optHelp :: Bool
                        , _optPort :: Int
@@ -123,10 +125,16 @@ routeTripHandlers feed routeId =
 type ServantRoutes = ToServerRoutes ViewRoutes HtmlPage Action
 
 serverHandlers :: Server ServantRoutes
-serverHandlers = homeServer
+serverHandlers = homeServer :<|> routePageServer
 
 homeServer :: Handler (HtmlPage (View Action))
-homeServer = pure $ HtmlPage $ viewModel $ initialModel linkHome
+homeServer = pageServer linkHome
+
+routePageServer :: Identifier Text Route -> Handler (HtmlPage (View Action))
+routePageServer routeId = pageServer $ linkRoute routeId
+
+pageServer :: URI -> Handler (HtmlPage (View Action))
+pageServer uri = pure $ HtmlPage $ viewModel $ initialModel uri
 
 page404 :: Application
 page404 = \_ respond -> respond $ responseLBS

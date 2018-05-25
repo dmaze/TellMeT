@@ -6,9 +6,10 @@ module TellMeT.Components.FeedFetcher where
 import Data.Monoid ((<>))
 import Lens.Micro ((^.), Lens')
 import Lens.Micro.GHC ()
-import Miso.Html (View, class_, div_, p_, span_, text)
+import Miso.Html (View, div_, p_, text)
 import Miso.String (MisoString, ms)
 
+import TellMeT.Bootstrap (fa_)
 import TellMeT.Components.Fetcher
   ( Fetcher (Unfetched, Fetching, FetchFailed, Fetched)
 #ifdef __GHCJS__
@@ -47,21 +48,26 @@ class FeedFetchAction action where
   ifFetchedRoutes :: (Monad m)
                   => action -> (Fetcher [Route] -> m ()) -> m ()
 
+-- | If we have the base feed already, run some other view function;
+-- otherwise ignore the view function and fetch the feed.
+viewOrFetch :: (FeedFetcher model) => model -> View action -> View action
+viewOrFetch m v = if haveFeed m then v else viewFeedFetch m
+
 viewAFetch :: (Show obj) => MisoString -> Fetcher obj -> View action
 viewAFetch title Unfetched = p_ []
-  [ span_ [class_ "fas fa-circle"] []
+  [ fa_ "circle"
   , text title
   ]
 viewAFetch title Fetching = p_ []
-  [ span_ [class_ "fas fa-circle-notch fa-spin"] []
+  [ fa_ "circle-notch spin"
   , text title
   ]
 viewAFetch title (FetchFailed msg) = p_ []
-  [ span_ [class_ "fas fa-times-circle"] []
+  [ fa_ "times-circle"
   , text (title <> ": " <> msg)
   ]
 viewAFetch title (Fetched obj) = p_ []
-  [ span_ [class_ "fas fa-check-circle"] []
+  [ fa_ "check-circle"
   , text (title <> ": " <> (ms $ show $ obj))
   ]
 

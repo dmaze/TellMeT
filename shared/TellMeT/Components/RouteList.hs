@@ -18,8 +18,9 @@ import TellMeT.GTFS
   )
 import TellMeT.Components.FeedFetcher (HasFeed (theFeed))
 import TellMeT.Components.RouteBadge (viewRouteBadge)
+import TellMeT.Components.URI (URIAction)
 
-viewOneRoute :: Route -> View action
+viewOneRoute :: (URIAction action) => Route -> View action
 viewOneRoute route = li_ [] [viewRouteBadge route, text $ ms $ desc]
   where short = routeShortName route
         long = routeLongName route
@@ -28,10 +29,10 @@ viewOneRoute route = li_ [] [viewRouteBadge route, text $ ms $ desc]
         sep = if moreName /= "" && theDesc /= "" then ": " else ""
         desc = " " <> moreName <> sep <> theDesc
 
-viewAllRoutes :: [Route] -> View action
+viewAllRoutes :: (URIAction action) => [Route] -> View action
 viewAllRoutes theRoutes =
   ul_ [class_ "list-unstyled"] $
   viewOneRoute <$> sortOn routeSortOrder theRoutes
 
-viewRouteList :: (HasFeed model) => model -> View action
+viewRouteList :: (HasFeed model, URIAction action) => model -> View action
 viewRouteList model = viewAllRoutes (model ^.. theFeed . routes . each)
