@@ -1,32 +1,32 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE TypeOperators     #-}
 
 -- | Core client page routing.
 module TellMeT.Routes where
 
-import Data.Either (either)
-import Data.Proxy (Proxy(Proxy))
-import Lens.Micro.Extras (view)
-import Miso (View, runRoute, text)
-import Servant.API ((:<|>) ((:<|>)))
+import           Data.Default                 (def)
+import           Lens.Micro                   ((^.))
+import           Miso                         (View, text)
+import           Network.URI                  (URI)
 
-import TellMeT.Action (Action)
-import TellMeT.Components.Chrome (viewChrome)
-import TellMeT.Components.FeedFetcher (viewOrFetch)
-import TellMeT.Components.RouteList (viewRouteList)
-import TellMeT.Components.RoutePage (viewRoutePage)
-import TellMeT.Components.URI (siteURI)
-import TellMeT.Model (Model)
-import TellMeT.Pages (ViewRoutes, linkHome)
+import           TellMeT.Action               (Action)
+import           TellMeT.Components.Chrome    (viewChrome)
+import           TellMeT.Components.Pages     (currentPage, goToPageLink)
+import           TellMeT.Components.RouteList (viewRouteList)
+import           TellMeT.Components.RoutePage (viewRoutePage)
+import           TellMeT.Model                (Model)
+import           TellMeT.Pages                (Page (NoPage, RouteList, RoutePage))
 
 viewModel :: Model -> View Action
-viewModel m =
-  viewChrome linkHome $
-  either (\_ -> view404) (viewOrFetch m) $
-  runRoute (Proxy @ViewRoutes) viewTree (view siteURI) m
-  where viewTree = viewRouteList :<|> viewRoutePage
+viewModel model =
+  viewChrome home $
+  case model ^. currentPage of
+    NoPage        -> view404
+    RouteList     -> viewRouteList model
+    RoutePage rid -> viewRoutePage rid model
+  where (_, home) = goToPageLink def :: (Action, URI)
 
 view404 :: View a
 view404 = text "not found"

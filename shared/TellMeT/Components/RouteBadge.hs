@@ -1,19 +1,16 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module TellMeT.Components.RouteBadge where
 
 import Data.Monoid ((<>))
 import Lens.Micro ((?~), at)
-import Miso.Event.Decoder (emptyDecoder)
 import Miso.Html (Attribute, View, text, class_, style_)
-import Miso.Html.Element (a_, span_)
-import Miso.Html.Event (Options (preventDefault, stopPropagation),
-                        defaultOptions, onWithOptions)
-import Miso.Html.Property (href_)
+import Miso.Html.Element (span_)
 import Miso.String (ms)
 
 import TellMeT.Bootstrap (fa_)
-import TellMeT.Components.URI (URIAction (changeURI))
+import TellMeT.Components.Pages (PageAction, a_page_)
 import TellMeT.GTFS
   ( Route, routeColor, routeId, routeLongName, routeShortName, routeTextColor
   , routeType
@@ -21,7 +18,7 @@ import TellMeT.GTFS
               , Funicular
               )
   )
-import TellMeT.Pages (linkRoute)
+import TellMeT.Pages (Page (RoutePage))
 
 viewRouteType :: RouteType -> View action
 viewRouteType LightRail = fa_ "subway"
@@ -42,22 +39,15 @@ routeStyle route =
       attrs = fg' $ bg' $ mempty
   in style_ attrs
 
-viewRouteBadge :: (URIAction action) => Route -> View action
+viewRouteBadge :: (PageAction Page action) => Route -> View action
 viewRouteBadge route =
   span_
   [ class_ "badge"
   , routeStyle route
   ]
-  [ a_
-    [ href_ $ ms $ "/" <> show target
-    , routeStyle route
-    , onClick $ changeURI target
-    ]
+  [ a_page_ (RoutePage $ routeId route)
+    [ routeStyle route ]
     [ viewRouteType $ routeType route, text $ ms $ name]
   ]
-  where onClick a = onWithOptions (defaultOptions { preventDefault = True
-                                                  , stopPropagation = True })
-                    "click" emptyDecoder (const a)
-        target = linkRoute $ routeId route
-        short = routeShortName route
+  where short = routeShortName route
         name = " " <> if short == "" then routeLongName route else short

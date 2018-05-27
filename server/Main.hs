@@ -1,44 +1,57 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE TypeOperators     #-}
 
 module Main where
 
-import Control.Monad.Except (throwError)
-import Data.Default (Default (def))
-import Data.Monoid ((<>))
-import Data.Proxy (Proxy (Proxy))
-import Data.Text (Text)
-import Lens.Micro (Lens', (^.), (^..), at, each, filtered, set)
-import Lucid (ToHtml(toHtml, toHtmlRaw), renderBS,
-              doctypehtml_, head_, title_, meta_, charset_, link_, rel_,
-              href_, name_, content_,
-              with, script_, src_, async_, defer_, body_)
-import Lucid.Base (makeAttribute)
-import Miso (ToServerRoutes, View)
-import Network.HTTP.Types (status404)
-import Network.URI (URI)
-import Network.Wai (Application, responseLBS)
-import Network.Wai.Handler.Warp (run)
-import Network.Wai.Middleware.RequestLogger (logStdout)
-import Servant.API (Raw, (:>), (:<|>)(..))
-import Servant.Server (Handler, Server, err404, serve)
-import Servant.Utils.StaticFiles (serveDirectory)
-import System.Console.GetOpt (ArgDescr (NoArg, ReqArg), ArgOrder (Permute),
-                              OptDescr (Option), getOpt, usageInfo)
-import System.Environment (getArgs)
+import           Control.Monad.Except                 (throwError)
+import           Data.Default                         (Default (def))
+import           Data.Monoid                          ((<>))
+import           Data.Proxy                           (Proxy (Proxy))
+import           Data.Text                            (Text)
+import           Lens.Micro                           (Lens', at, each,
+                                                       filtered, set, (^.),
+                                                       (^..))
+import           Lucid                                (ToHtml (toHtml, toHtmlRaw),
+                                                       async_, body_, charset_,
+                                                       content_, defer_,
+                                                       doctypehtml_, head_,
+                                                       href_, link_, meta_,
+                                                       name_, rel_, renderBS,
+                                                       script_, src_, title_,
+                                                       with)
+import           Lucid.Base                           (makeAttribute)
+import           Miso                                 (ToServerRoutes, View)
+import           Network.HTTP.Types                   (status404)
+import           Network.URI                          (URI)
+import           Network.Wai                          (Application, responseLBS)
+import           Network.Wai.Handler.Warp             (run)
+import           Network.Wai.Middleware.RequestLogger (logStdout)
+import           Servant.API                          ((:<|>) (..), (:>), Raw)
+import           Servant.Server                       (Handler, Server, err404,
+                                                       serve)
+import           Servant.Utils.StaticFiles            (serveDirectory)
+import           System.Console.GetOpt                (ArgDescr (NoArg, ReqArg),
+                                                       ArgOrder (Permute),
+                                                       OptDescr (Option),
+                                                       getOpt, usageInfo)
+import           System.Environment                   (getArgs)
 
-import Paths_TellMeT (getDataDir)
-import TellMeT.Action (Action)
-import TellMeT.GTFS (Feed, Route, agencies, stops, routes, trips, tripRouteId)
-import TellMeT.Model (initialModel)
-import TellMeT.REST (MapAPI, RestAPI, RouteAPI, RouteTripsAPI)
-import TellMeT.Pages (ViewRoutes, linkHome, linkRoute)
-import TellMeT.Routes (view404, viewModel)
-import TellMeT.Server.GTFS (readFeed)
-import TellMeT.Util (Identifier, MapOf)
+import           Paths_TellMeT                        (getDataDir)
+import           TellMeT.Action                       (Action, ViewRoutes)
+import           TellMeT.Components.Pages             (goToPageLink)
+import           TellMeT.GTFS                         (Feed, Route, agencies,
+                                                       routes, stops,
+                                                       tripRouteId, trips)
+import           TellMeT.Model                        (initialModel)
+import           TellMeT.Pages                        (Page (RouteList, RoutePage))
+import           TellMeT.REST                         (MapAPI, RestAPI,
+                                                       RouteAPI, RouteTripsAPI)
+import           TellMeT.Routes                       (view404, viewModel)
+import           TellMeT.Server.GTFS                  (readFeed)
+import           TellMeT.Util                         (Identifier, MapOf)
 
 data Options = Options { _optHelp :: Bool
                        , _optPort :: Int
@@ -125,16 +138,17 @@ routeTripHandlers feed routeId =
 type ServantRoutes = ToServerRoutes ViewRoutes HtmlPage Action
 
 serverHandlers :: Server ServantRoutes
-serverHandlers = homeServer :<|> routePageServer
+serverHandlers = routeListServer :<|> routePageServer
 
-homeServer :: Handler (HtmlPage (View Action))
-homeServer = pageServer linkHome
+routeListServer :: Handler (HtmlPage (View Action))
+routeListServer = pageServer RouteList
 
 routePageServer :: Identifier Text Route -> Handler (HtmlPage (View Action))
-routePageServer routeId = pageServer $ linkRoute routeId
+routePageServer = pageServer . RoutePage
 
-pageServer :: URI -> Handler (HtmlPage (View Action))
-pageServer uri = pure $ HtmlPage $ viewModel $ initialModel uri
+pageServer :: Page -> Handler (HtmlPage (View Action))
+pageServer page = pure $ HtmlPage $ viewModel $ initialModel uri
+  where (_, uri) = goToPageLink page :: (Action, URI)
 
 page404 :: Application
 page404 = \_ respond -> respond $ responseLBS

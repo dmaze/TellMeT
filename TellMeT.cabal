@@ -21,6 +21,7 @@ library
                     , TellMeT.Components.Chrome
                     , TellMeT.Components.FeedFetcher
                     , TellMeT.Components.Fetcher
+                    , TellMeT.Components.Pages
                     , TellMeT.Components.RouteBadge
                     , TellMeT.Components.RouteList
                     , TellMeT.Components.RoutePage
