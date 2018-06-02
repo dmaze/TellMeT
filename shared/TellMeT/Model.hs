@@ -5,7 +5,6 @@ module TellMeT.Model where
 
 import           Data.Default                   (def)
 import           Data.Map                       (Map)
-import           Data.Text                      (Text)
 import           Network.URI                    (URI)
 
 import           TellMeT.Components.FeedFetcher (FeedFetcher (fetchAgencies, fetchRoutes, tripsForRouteFetcher),
@@ -22,7 +21,7 @@ data Model = Model { _siteUri       :: URI
                    , _theFeed       :: Feed
                    , _fetchAgencies :: Fetcher [Agency]
                    , _fetchRoutes   :: Fetcher [Route]
-                   , _tripsForRouteFetcher :: Map (Identifier Text Route) (Fetcher [Trip])
+                   , _tripsForRouteFetcher :: Map (Identifier Route) (Fetcher [Trip])
                    } deriving (Eq, Show)
 
 instance SiteURI Model where

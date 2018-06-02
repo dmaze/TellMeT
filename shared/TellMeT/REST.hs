@@ -5,16 +5,15 @@
 module TellMeT.REST where
 
 import           Data.Proxy   (Proxy (Proxy))
-import           Data.Text    (Text)
 import           Network.URI  (URI)
 import           Servant.API  ((:<|>) (..), (:>), Capture, Get, JSON, safeLink)
 import           TellMeT.GTFS (Agency, Route, Stop, Trip)
 import           TellMeT.Util (Identifier)
 
 type MapAPI a = Get '[JSON] [a] :<|>
-                Capture "id" (Identifier Text a) :> Get '[JSON] a
+                Capture "id" (Identifier a) :> Get '[JSON] a
 
-type RouteTripsAPI = Capture "id" (Identifier Text Route) :> "trips" :> Get '[JSON] [Trip]
+type RouteTripsAPI = Capture "id" (Identifier Route) :> "trips" :> Get '[JSON] [Trip]
 
 type RouteAPI = MapAPI Route :<|> RouteTripsAPI
 
@@ -32,6 +31,6 @@ linkRoutes :: URI
 linkRoutes = safeLink (Proxy @RestAPI)
              (Proxy @("api" :> "route" :> Get '[JSON] [Route]))
 
-linkTripsForRoute :: Identifier Text Route -> URI
+linkTripsForRoute :: Identifier Route -> URI
 linkTripsForRoute = safeLink (Proxy @RestAPI)
                     (Proxy @("api" :> "route" :> RouteTripsAPI))

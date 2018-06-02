@@ -2,7 +2,6 @@
 module TellMeT.Pages where
 
 import           Data.Default (Default (def))
-import           Data.Text    (Text)
 
 import           TellMeT.GTFS (Route)
 import           TellMeT.Util (Identifier)
@@ -10,7 +9,7 @@ import           TellMeT.Util (Identifier)
 -- | The set of pages in the application.
 data Page = NoPage
           | RouteList
-          | RoutePage (Identifier Text Route)
+          | RoutePage (Identifier Route)
           deriving (Eq, Show)
 
 instance Default Page where

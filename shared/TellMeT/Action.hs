@@ -10,7 +10,6 @@ module TellMeT.Action where
 
 import           Data.Default                   (Default (def))
 import           Data.Proxy                     (Proxy (Proxy))
-import           Data.Text                      (Text)
 import           Network.URI                    (URI)
 
 #ifdef __GHCJS__
@@ -68,9 +67,9 @@ data Action
     -- | An announcement that we have fetched the list of routes.
   | FetchedRoutes (Fetcher [Route])
     -- | Request to fetch the list of trips for a specific route.
-    | FetchTripsForRoute (Identifier Text Route)
+    | FetchTripsForRoute (Identifier Route)
     -- | Announce that we have received the list of trips for a route.
-    | FetchedTripsForRoute (Identifier Text Route) (Fetcher [Trip])
+    | FetchedTripsForRoute (Identifier Route) (Fetcher [Trip])
   deriving (Show, Eq)
 
 instance Default Action where
@@ -134,7 +133,7 @@ type RouteListRoute = View Action
 
 -- | Servant type for the route details page.
 type RoutePageRoute = "route"
-                      :> Capture "id" (Identifier Text Route)
+                      :> Capture "id" (Identifier Route)
                       :> View Action
 
 -- | All Servant routes for viewing application pages.

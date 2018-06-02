@@ -1,33 +1,33 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE FlexibleContexts      #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 module TellMeT.Components.RouteBadge where
 
-import Data.Monoid ((<>))
-import Lens.Micro ((?~), at)
-import Miso.Html (Attribute, View, text, class_, style_)
-import Miso.Html.Element (span_)
-import Miso.String (ms)
+import           Data.Monoid              ((<>))
+import           Lens.Micro               (at, (?~))
+import           Lens.Micro.GHC           ()
+import           Miso.Html                (Attribute, View, class_, style_,
+                                           text)
+import           Miso.Html.Element        (span_)
+import           Miso.String              (ms)
 
-import TellMeT.Bootstrap (fa_)
-import TellMeT.Components.Pages (PageAction, a_page_)
-import TellMeT.GTFS
-  ( Route, routeColor, routeId, routeLongName, routeShortName, routeTextColor
-  , routeType
-  , RouteType ( LightRail, Subway, Rail, Bus, Ferry, CableCar, Gondola
-              , Funicular
-              )
-  )
-import TellMeT.Pages (Page (RoutePage))
+import           TellMeT.Bootstrap        (fa_)
+import           TellMeT.Components.Pages (PageAction, a_page_)
+import           TellMeT.GTFS             (Route, RouteType (Bus, CableCar, Ferry, Funicular, Gondola, LightRail, Rail, Subway),
+                                           routeColor, routeId, routeLongName,
+                                           routeShortName, routeTextColor,
+                                           routeType)
+import           TellMeT.Pages            (Page (RoutePage))
 
 viewRouteType :: RouteType -> View action
 viewRouteType LightRail = fa_ "subway"
-viewRouteType Subway = fa_ "subway"
-viewRouteType Rail = fa_ "train"
-viewRouteType Bus = fa_ "bus"
-viewRouteType Ferry = fa_ "ship"
-viewRouteType CableCar = fa_ "subway"
-viewRouteType Gondola = fa_ "subway"
+viewRouteType Subway    = fa_ "subway"
+viewRouteType Rail      = fa_ "train"
+viewRouteType Bus       = fa_ "bus"
+viewRouteType Ferry     = fa_ "ship"
+viewRouteType CableCar  = fa_ "subway"
+viewRouteType Gondola   = fa_ "subway"
 viewRouteType Funicular = fa_ "subway"
 
 routeStyle :: Route -> Attribute action

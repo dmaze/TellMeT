@@ -1,7 +1,11 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DeriveGeneric              #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 -- | Data representation of the General Transit Feed Specification.
 --
@@ -11,32 +15,25 @@
 -- and 'FromJSON' and 'ToJSON' to provide a REST interface.
 module TellMeT.GTFS where
 
-import Control.Applicative ((<|>))
-import Data.Aeson
-  ( genericParseJSON, genericToJSON, withText
-  )
-import Data.Aeson.Types
-  ( FromJSON (parseJSON), ToJSON (toJSON), Options (fieldLabelModifier)
-  , camelTo2, defaultOptions
-  )
-import Data.Csv (FromNamedRecord (parseNamedRecord), (.:))
-import Data.Default (Default (def))
-import Data.Text (Text)
-import GHC.Generics (Generic)
-import Lens.Micro (Lens', (?~), at)
-import Lens.Micro.GHC ()
+import           Control.Applicative ((<|>))
+import           Data.Aeson          (genericParseJSON, genericToJSON, withText)
+import           Data.Aeson.Types    (FromJSON (parseJSON),
+                                      Options (fieldLabelModifier),
+                                      ToJSON (toJSON), camelTo2, defaultOptions)
+import           Data.Csv            (FromNamedRecord (parseNamedRecord), (.:))
+import           Data.Default        (Default (def))
+import           Data.Text           (Text)
+import           GHC.Generics        (Generic)
+import           Web.HttpApiData     (FromHttpApiData, ToHttpApiData)
 
-import TellMeT.Util
-  ( Identified (identifier)
-  , Identifier (Identifier)
-  , MapOf
-  )
+import           TellMeT.Util        (Identified (Identifier, identifier),
+                                      MapOf)
 
 -- | Data extracted from an entire GTFS feed.
-data Feed = Feed { _agencies :: MapOf Text Agency
-                 , _stops :: MapOf Text Stop
-                 , _routes :: MapOf Text Route
-                 , _trips :: MapOf Text Trip
+data Feed = Feed { _agencies :: MapOf Agency
+                 , _stops    :: MapOf Stop
+                 , _routes   :: MapOf Route
+                 , _trips    :: MapOf Trip
                  } deriving (Eq, Show)
 
 instance Default Feed where
@@ -47,24 +44,20 @@ instance Default Feed where
              }
 
 -- | Access the map of agency ID to agency for a feed.
-agencies :: Lens' Feed (MapOf Text Agency)
+agencies :: (Functor t) => (MapOf Agency -> t (MapOf Agency)) -> Feed -> t Feed
 agencies f feed = (\a -> feed { _agencies = a }) <$> f (_agencies feed)
 
 -- | Access the map of stop ID to stop for a feed.
-stops :: Lens' Feed (MapOf Text Stop)
+stops :: (Functor t) => (MapOf Stop -> t (MapOf Stop)) -> Feed -> t Feed
 stops f feed = (\s -> feed { _stops = s }) <$> f (_stops feed)
 
 -- | Access the map of route ID to route for a feed.
-routes :: Lens' Feed (MapOf Text Route)
+routes :: (Functor t) => (MapOf Route -> t (MapOf Route)) -> Feed -> t Feed
 routes f feed = (\r -> feed { _routes = r }) <$> f (_routes feed)
 
 -- | Access the map of trip ID to trip for a feed.
-trips :: Lens' Feed (MapOf Text Trip)
+trips :: (Functor t) => (MapOf Trip -> t (MapOf Trip)) -> Feed -> t Feed
 trips f feed = (\t -> feed { _trips = t}) <$> f (_trips feed)
-
--- | Add an identified object to a map, indexed by its identifier.
-putMap :: (Ord k, Identified k a) => Lens' t (MapOf k a) -> a -> t -> t
-putMap part item = part . at (identifier item) ?~ item
 
 jsonOptions :: Options
 jsonOptions = defaultOptions { fieldLabelModifier = camelTo2 '_' }
@@ -79,17 +72,20 @@ maybeBool 2 = Just False
 maybeBool _ = Nothing
 
 -- | A transit agency, as described in a GTFS feed.
-data Agency = Agency { agencyId :: Identifier Text Agency
-                     , agencyName :: Text
-                     , agencyUrl :: Text
+data Agency = Agency { agencyId       :: Identifier Agency
+                     , agencyName     :: Text
+                     , agencyUrl      :: Text
                      , agencyTimeZone :: Text
-                     , agencyLang :: Maybe Text
-                     , agencyPhone :: Maybe Text
-                     , agencyFareUrl :: Maybe Text
-                     , agencyEmail :: Maybe Text
+                     , agencyLang     :: Maybe Text
+                     , agencyPhone    :: Maybe Text
+                     , agencyFareUrl  :: Maybe Text
+                     , agencyEmail    :: Maybe Text
                      } deriving (Eq, Show, Generic)
 
-instance Identified Text Agency where
+instance Identified Agency where
+  newtype Identifier Agency = AgencyIdentifier Text
+    deriving (Eq, Show, Ord, FromJSON, ToJSON, FromHttpApiData,
+              ToHttpApiData)
   identifier = agencyId
 
 instance FromJSON Agency where
@@ -100,7 +96,7 @@ instance ToJSON Agency where
 
 instance FromNamedRecord Agency where
   parseNamedRecord m = Agency <$>
-    (Identifier <$> (m .: "agency_id" <|> return "")) <*>
+    (AgencyIdentifier <$> (m .: "agency_id" <|> return "")) <*>
     m .: "agency_name" <*>
     m .: "agency_url" <*>
     m .: "agency_timezone" <*>
@@ -115,31 +111,34 @@ data LocationType = StopType | Station | Entrance
 instance FromJSON LocationType where
   parseJSON = withText "LocationType" $ \s ->
     case s of
-      "stop" -> return StopType
-      "station" -> return Station
+      "stop"     -> return StopType
+      "station"  -> return Station
       "entrance" -> return Entrance
-      _ -> fail "invalid LocationType"
+      _          -> fail "invalid LocationType"
 instance ToJSON LocationType where
   toJSON StopType = toJSON ("stop" :: Text)
-  toJSON Station = toJSON ("station" :: Text)
+  toJSON Station  = toJSON ("station" :: Text)
   toJSON Entrance = toJSON ("entrance" :: Text)
 
 -- | A place where some transit vehicle stops.
-data Stop = Stop { stopId :: Identifier Text Stop
-                 , stopCode :: Text
-                 , stopName :: Text
-                 , stopDesc :: Text
-                 , stopLat :: Float
-                 , stopLon :: Float
-                 , zoneId :: Text
-                 , stopUrl :: Text
-                 , locationType :: LocationType
-                 , parentStation :: Text
-                 , stopTimezone :: Text
+data Stop = Stop { stopId             :: Identifier Stop
+                 , stopCode           :: Text
+                 , stopName           :: Text
+                 , stopDesc           :: Text
+                 , stopLat            :: Float
+                 , stopLon            :: Float
+                 , zoneId             :: Text
+                 , stopUrl            :: Text
+                 , locationType       :: LocationType
+                 , parentStation      :: Text
+                 , stopTimezone       :: Text
                  , wheelchairBoarding :: Maybe Bool
                  } deriving (Eq, Show, Generic)
 
-instance Identified Text Stop where
+instance Identified Stop where
+  newtype Identifier Stop = StopIdentifier Text
+    deriving (Eq, Show, Ord, FromJSON, ToJSON, FromHttpApiData,
+              ToHttpApiData)
   identifier = stopId
 
 instance FromJSON Stop where
@@ -150,7 +149,7 @@ instance ToJSON Stop where
 
 instance FromNamedRecord Stop where
   parseNamedRecord m = Stop <$>
-    (Identifier <$> m .: "stop_id") <*>
+    (StopIdentifier <$> m .: "stop_id") <*>
     (m .: "stop_code" <|> return "") <*>
     m .: "stop_name" <*>
     (m .: "stop_desc" <|> return "") <*>
@@ -171,38 +170,41 @@ instance FromJSON RouteType where
   parseJSON = withText "RouteType" $ \s ->
     case s of
       "light_rail" -> return LightRail
-      "subway" -> return Subway
-      "rail" -> return Rail
-      "bus" -> return Bus
-      "ferry" -> return Ferry
-      "cable_car" -> return CableCar
-      "gondola" -> return Gondola
-      "funicular" -> return Funicular
-      _ -> fail "invalid RouteType"
+      "subway"     -> return Subway
+      "rail"       -> return Rail
+      "bus"        -> return Bus
+      "ferry"      -> return Ferry
+      "cable_car"  -> return CableCar
+      "gondola"    -> return Gondola
+      "funicular"  -> return Funicular
+      _            -> fail "invalid RouteType"
 instance ToJSON RouteType where
   toJSON LightRail = toJSON ("light_rail" :: Text)
-  toJSON Subway = toJSON ("subway" :: Text)
-  toJSON Rail = toJSON ("rail" :: Text)
-  toJSON Bus = toJSON ("bus" :: Text)
-  toJSON Ferry = toJSON ("ferry" :: Text)
-  toJSON CableCar = toJSON ("cable_car" :: Text)
-  toJSON Gondola = toJSON ("gondola" :: Text)
+  toJSON Subway    = toJSON ("subway" :: Text)
+  toJSON Rail      = toJSON ("rail" :: Text)
+  toJSON Bus       = toJSON ("bus" :: Text)
+  toJSON Ferry     = toJSON ("ferry" :: Text)
+  toJSON CableCar  = toJSON ("cable_car" :: Text)
+  toJSON Gondola   = toJSON ("gondola" :: Text)
   toJSON Funicular = toJSON ("funicular" :: Text)
 
 -- | A single transit route as described in a GTFS feed.
-data Route = Route { routeId :: Identifier Text Route
-                   , routeAgencyId :: Identifier Text Agency
+data Route = Route { routeId        :: Identifier Route
+                   , routeAgencyId  :: Identifier Agency
                    , routeShortName :: Text
-                   , routeLongName :: Text
-                   , routeDesc :: Text
-                   , routeType :: RouteType
-                   , routeUrl :: Text
-                   , routeColor :: Text
+                   , routeLongName  :: Text
+                   , routeDesc      :: Text
+                   , routeType      :: RouteType
+                   , routeUrl       :: Text
+                   , routeColor     :: Text
                    , routeTextColor :: Text
                    , routeSortOrder :: Int
                    } deriving (Eq, Show, Generic)
 
-instance Identified Text Route where
+instance Identified Route where
+  newtype Identifier Route = RouteIdentifier Text
+    deriving (Eq, Show, Ord, FromJSON, ToJSON, FromHttpApiData,
+              ToHttpApiData)
   identifier = routeId
 
 instance FromJSON Route where
@@ -213,8 +215,8 @@ instance ToJSON Route where
 
 instance FromNamedRecord Route where
   parseNamedRecord m = Route <$>
-    (Identifier <$> m .: "route_id") <*>
-    (Identifier <$> (m .: "agency_id" <|> return "")) <*>
+    (RouteIdentifier <$> m .: "route_id") <*>
+    (AgencyIdentifier <$> (m .: "agency_id" <|> return "")) <*>
     m .: "route_short_name" <*>
     m .: "route_long_name" <*>
     (m .: "route_desc" <|> return "") <*>
@@ -225,19 +227,22 @@ instance FromNamedRecord Route where
     (m .: "route_sort_order" <|> return 0)
 
 -- | A single trip as described in the GTFS feed.
-data Trip = Trip { tripRouteId :: Identifier Text Route
-                 , tripServiceId :: Text
-                 , tripId :: Identifier Text Trip
-                 , tripHeadsign :: Text
-                 , tripShortName :: Text
-                 , tripDirectionId :: Maybe Int
-                 , tripBlockId :: Text
-                 , tripShapeId :: Text
+data Trip = Trip { tripRouteId              :: Identifier Route
+                 , tripServiceId            :: Text
+                 , tripId                   :: Identifier Trip
+                 , tripHeadsign             :: Text
+                 , tripShortName            :: Text
+                 , tripDirectionId          :: Maybe Int
+                 , tripBlockId              :: Text
+                 , tripShapeId              :: Text
                  , tripWheelchairAccessible :: Maybe Bool
-                 , tripBikesAllowed :: Maybe Bool
+                 , tripBikesAllowed         :: Maybe Bool
                  } deriving (Eq, Show, Generic)
 
-instance Identified Text Trip where
+instance Identified Trip where
+  newtype Identifier Trip = TripIdentifier Text
+    deriving (Eq, Show, Ord, FromJSON, ToJSON, FromHttpApiData,
+              ToHttpApiData)
   identifier = tripId
 
 instance FromJSON Trip where
@@ -248,9 +253,9 @@ instance ToJSON Trip where
 
 instance FromNamedRecord Trip where
   parseNamedRecord m = Trip <$>
-    (Identifier <$> m .: "route_id") <*>
+    (RouteIdentifier <$> m .: "route_id") <*>
     ({- Identifier <$> -} m .: "service_id") <*>
-    (Identifier <$> m .: "trip_id") <*>
+    (TripIdentifier <$> m .: "trip_id") <*>
     m .: "trip_headsign" <*>
     m .: "trip_short_name" <*>
     (Just <$> m .: "direction_id" <|> return Nothing) <*>

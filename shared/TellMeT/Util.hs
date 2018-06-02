@@ -1,26 +1,23 @@
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes       #-}
+{-# LANGUAGE TypeFamilies     #-}
 
 -- | Miscellaneous utilities.
 module TellMeT.Util where
 
-import Data.Aeson (FromJSON, ToJSON)
-import Data.Map (Map, insert)
-import Web.HttpApiData (FromHttpApiData, ToHttpApiData)
-
--- | A unique identifier for some type.
-newtype Identifier k a = Identifier { unIdentifier :: k }
-                       deriving (Eq, Show, Ord, FromJSON, ToJSON,
-                                 FromHttpApiData, ToHttpApiData)
+import           Data.Map (Map, insert)
 
 -- | Things that have unique identifiers.
-class Identified k a | a -> k where
+class Identified a where
+  -- | The type of identifiers of this object.
+  data Identifier a
+
   -- | The identifier for this object.
-  identifier :: a -> Identifier k a
+  identifier :: a -> Identifier a
 
 -- | Shorthand for a map of objects by their identifier keys.
-type MapOf k a = Map (Identifier k a) a
+type MapOf a = Map (Identifier a) a
 
 -- | Add a uniquely-identified object to a map on its primary key.
-addToMap :: (Ord k, Identified k a) => a -> MapOf k a -> MapOf k a
+addToMap :: (Identified a, Ord (Identifier a)) => a -> MapOf a -> MapOf a
 addToMap obj = insert (identifier obj) obj

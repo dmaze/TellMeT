@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RankNTypes        #-}
 {-# LANGUAGE TypeApplications  #-}
@@ -10,7 +11,6 @@ import           Control.Monad.Except                 (throwError)
 import           Data.Default                         (Default (def))
 import           Data.Monoid                          ((<>))
 import           Data.Proxy                           (Proxy (Proxy))
-import           Data.Text                            (Text)
 import           Lens.Micro                           (Lens', at, each,
                                                        filtered, set, (^.),
                                                        (^..))
@@ -121,7 +121,8 @@ restHandlers feed = mapHandlers agencies feed :<|>
                     routeHandlers feed :<|>
                     mapHandlers trips feed
 
-mapHandlers :: Lens' Feed (MapOf Text a) -> Feed -> Server (MapAPI a)
+mapHandlers :: (Ord (Identifier a))
+            => Lens' Feed (MapOf a) -> Feed -> Server (MapAPI a)
 mapHandlers lens feed = return (feed ^.. lens . each) :<|>
                         \a -> maybe (throwError err404) return
                              (feed ^. lens . at a)
@@ -143,7 +144,7 @@ serverHandlers = routeListServer :<|> routePageServer
 routeListServer :: Handler (HtmlPage (View Action))
 routeListServer = pageServer RouteList
 
-routePageServer :: Identifier Text Route -> Handler (HtmlPage (View Action))
+routePageServer :: Identifier Route -> Handler (HtmlPage (View Action))
 routePageServer = pageServer . RoutePage
 
 pageServer :: Page -> Handler (HtmlPage (View Action))

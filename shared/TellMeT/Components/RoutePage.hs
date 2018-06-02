@@ -8,7 +8,6 @@ module TellMeT.Components.RoutePage where
 
 import           Control.Monad.Writer.Class     (tell)
 import           Data.Monoid                    ((<>))
-import           Data.Text                      (Text)
 import           Lens.Micro                     (at, (^.))
 import           Miso.Html                      (View, text)
 import           Miso.Html.Element              (div_, h1_, li_, span_, ul_)
@@ -35,7 +34,7 @@ import           TellMeT.Util                   (Identifier)
 -- | Display the page for a given route.  Note that the identifier will
 -- come out of the URL, not out of the model state.
 viewRoutePage :: (FeedFetcher model, HasFeed model, PageAction Page action)
-              => Identifier Text Route -> model -> View action
+              => Identifier Route -> model -> View action
 viewRoutePage routeId model = case model ^. theFeed . routes . at routeId of
   Nothing    -> viewNoRoutePage
   Just route -> let fetch = maybe Unfetched id
@@ -74,7 +73,7 @@ viewOptionalFeature icon (Just False) =
 
 #ifdef __GHCJS__
 onRoutePage :: (FeedFetcher model, FeedFetchAction action)
-            => Identifier Text Route
+            => Identifier Route
             -> Transition action model ()
 onRoutePage routeId = do
   fetcher <- use $ tripsForRouteFetcher . at routeId

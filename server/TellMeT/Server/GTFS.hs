@@ -1,23 +1,30 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE RankNTypes        #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module TellMeT.Server.GTFS where
 
-import Codec.Archive.Zip (Archive, findEntryByPath, fromEntry,
-                          toArchiveOrFail)
-import Data.ByteString.Lazy (ByteString, readFile)
-import Data.Csv (FromNamedRecord, decodeByName)
-import Data.Default (def)
-import Data.Monoid ((<>))
-import Prelude hiding (readFile)
-import TellMeT.GTFS
+import           Codec.Archive.Zip    (Archive, findEntryByPath, fromEntry,
+                                       toArchiveOrFail)
+import           Data.ByteString.Lazy (ByteString, readFile)
+import           Data.Csv             (FromNamedRecord, decodeByName)
+import           Data.Default         (def)
+import           Data.Monoid          ((<>))
+import           Lens.Micro           (Lens', (%~))
+import           Prelude              hiding (readFile)
+
+import           TellMeT.GTFS         (Feed, agencies, routes, stops, trips)
+import           TellMeT.Util         (Identified (Identifier), MapOf, addToMap)
 
 readFeed :: FilePath -> IO (Either String Feed)
 readFeed path = do
   zipBytes <- readFile path
   return $ feedFromArchive zipBytes
+
+putMap :: (Identified a, Ord (Identifier a))
+       => Lens' t (MapOf a) -> a -> t -> t
+putMap part item = part %~ addToMap item
 
 feedFromArchive :: ByteString -> Either String Feed
 feedFromArchive zipBytes = do

@@ -5,8 +5,7 @@ module TellMeT.Components.FeedFetcher where
 
 import           Data.Map                   (Map)
 import           Data.Monoid                ((<>))
-import           Data.Text                  (Text)
-import           Lens.Micro                 (Lens', at, (^.))
+import           Lens.Micro                 (Lens', at, (.~), (^.))
 import           Lens.Micro.GHC             ()
 import           Miso.Html                  (View, div_, p_, text)
 import           Miso.String                (MisoString, ms)
@@ -14,8 +13,8 @@ import           Miso.String                (MisoString, ms)
 import           TellMeT.Bootstrap          (fa_)
 import           TellMeT.Components.Fetcher (Fetcher (FetchFailed, Fetched, Fetching, Unfetched))
 import           TellMeT.GTFS               (Agency, Feed, Route, Trip,
-                                             agencies, putMap, routes)
-import           TellMeT.Util               (Identifier)
+                                             agencies, routes)
+import           TellMeT.Util               (Identifier, addToMap)
 
 #ifdef __GHCJS__
 import           Control.Monad.Writer.Class (tell)
@@ -33,7 +32,7 @@ class HasFeed model where
 class FeedFetcher model where
   fetchAgencies :: Lens' model (Fetcher [Agency])
   fetchRoutes :: Lens' model (Fetcher [Route])
-  tripsForRouteFetcher :: Lens' model (Map (Identifier Text Route) (Fetcher [Trip]))
+  tripsForRouteFetcher :: Lens' model (Map (Identifier Route) (Fetcher [Trip]))
 
 class FeedFetchAction action where
   fetchFeed :: action
@@ -44,15 +43,15 @@ class FeedFetchAction action where
   fetchedRoutes :: Fetcher [Route] -> action
   ifFetchedRoutes :: (Monad m)
                   => action -> (Fetcher [Route] -> m ()) -> m ()
-  fetchTripsForRoute :: Identifier Text Route -> action
+  fetchTripsForRoute :: Identifier Route -> action
   ifFetchTripsForRoute :: (Monad m)
-                       => action -> (Identifier Text Route -> m ()) -> m ()
-  fetchedTripsForRoute :: Identifier Text Route
+                       => action -> (Identifier Route -> m ()) -> m ()
+  fetchedTripsForRoute :: Identifier Route
                        -> Fetcher [Trip]
                        -> action
   ifFetchedTripsForRoute :: (Monad m)
                          => action
-                         -> (Identifier Text Route -> Fetcher [Trip] -> m ())
+                         -> (Identifier Route -> Fetcher [Trip] -> m ())
                          -> m ()
 
 -- | If we have the base feed already, run some other view function;
@@ -128,7 +127,7 @@ buildFeed = do
 
 buildFeedFrom :: [Agency] -> [Route] -> Feed
 buildFeedFrom theAgencies theRoutes =
-  foldr (.) id (putMap agencies <$> theAgencies) $
-  foldr (.) id (putMap routes <$> theRoutes) $
+  agencies .~ foldr addToMap def theAgencies $
+  routes .~ foldr addToMap def theRoutes $
   def
 #endif
