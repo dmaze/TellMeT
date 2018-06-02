@@ -17,7 +17,7 @@ import           Network.URI                    (URI)
 import           Control.Monad                  (void)
 import           Data.Either                    (either)
 import qualified JavaScript.Object              as Object
-import           Lens.Micro.Mtl                 (assign)
+import           Lens.Micro.Mtl                 ((.=))
 import           Miso.Html                      (VTree (VTree),
                                                  View (View, runView))
 import           Miso.Router                    (runRoute)
@@ -30,13 +30,17 @@ import           Servant.API                    ((:<|>), (:>), Capture,
                                                  safeLink)
 #endif
 
-import           TellMeT.Components.FeedFetcher (FeedFetchAction (fetchFeed, fetchedAgencies, fetchedRoutes, ifFetchFeed, ifFetchedAgencies, ifFetchedRoutes))
+import           TellMeT.Components.FeedFetcher (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedTripsForRoute, ifFetchFeed, ifFetchTripsForRoute, ifFetchedAgencies, ifFetchedRoutes, ifFetchedTripsForRoute),
+                                                 FeedFetcher)
 import           TellMeT.Components.Fetcher     (Fetcher)
 import           TellMeT.Components.Pages       (OnPage (currentPage), PageAction (goToPage, goToPageLink, ifGoToPage, ifNowOnPage, nowOnPage))
 import           TellMeT.Components.URI         (URIAction (changeURI, handleURIChange, ifChangeURI, ifHandleURIChange))
-import           TellMeT.GTFS                   (Agency, Route)
+import           TellMeT.GTFS                   (Agency, Route, Trip)
 import           TellMeT.Pages                  (Page (NoPage, RouteList, RoutePage))
 import           TellMeT.Util                   (Identifier)
+#ifdef __GHCJS__
+import           TellMeT.Components.RoutePage   (onRoutePage)
+#endif
 
 -- | The concrete type of an action.
 --
@@ -63,6 +67,10 @@ data Action
   | FetchedAgencies (Fetcher [Agency])
     -- | An announcement that we have fetched the list of routes.
   | FetchedRoutes (Fetcher [Route])
+    -- | Request to fetch the list of trips for a specific route.
+    | FetchTripsForRoute (Identifier Text Route)
+    -- | Announce that we have received the list of trips for a route.
+    | FetchedTripsForRoute (Identifier Text Route) (Fetcher [Trip])
   deriving (Show, Eq)
 
 instance Default Action where
@@ -86,6 +94,12 @@ instance FeedFetchAction Action where
   fetchedRoutes = FetchedRoutes
   ifFetchedRoutes (FetchedRoutes ff) a = a ff
   ifFetchedRoutes _ _                  = return ()
+  fetchTripsForRoute = FetchTripsForRoute
+  ifFetchTripsForRoute (FetchTripsForRoute r) f = f r
+  ifFetchTripsForRoute _ _                      = return ()
+  fetchedTripsForRoute = FetchedTripsForRoute
+  ifFetchedTripsForRoute (FetchedTripsForRoute r t) f = f r t
+  ifFetchedTripsForRoute _ _                          = return ()
 
 instance PageAction Page Action where
   goToPage = GoToPage
@@ -149,7 +163,8 @@ dispatchOnPage page _ = dispatch $ nowOnPage page
 
 -- | Forward requests to go to specific pages, and observe when we are
 -- on a specific page.
-updatePage :: (OnPage Page model, PageAction Page action, URIAction action)
+updatePage :: (OnPage Page model, FeedFetcher model,
+              FeedFetchAction action, PageAction Page action, URIAction action)
            => action
            -> Transition action model ()
 updatePage action = do
@@ -161,5 +176,9 @@ updatePage action = do
         view = either (dispatchOnPage NoPage) id $
                runRoute (Proxy @ViewRoutes) pageTree id uri
     in scheduleSub $ void . runView view
-  ifNowOnPage action $ assign currentPage
+  ifNowOnPage action $ \page -> do
+    currentPage .= page
+    case page of
+      RoutePage routeId -> onRoutePage routeId
+      _                 -> return ()
 #endif

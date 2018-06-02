@@ -1,34 +1,30 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module TellMeT.Components.FeedFetcher where
 
-import Data.Monoid ((<>))
-import Lens.Micro ((^.), Lens')
-import Lens.Micro.GHC ()
-import Miso.Html (View, div_, p_, text)
-import Miso.String (MisoString, ms)
+import           Data.Map                   (Map)
+import           Data.Monoid                ((<>))
+import           Data.Text                  (Text)
+import           Lens.Micro                 (Lens', at, (^.))
+import           Lens.Micro.GHC             ()
+import           Miso.Html                  (View, div_, p_, text)
+import           Miso.String                (MisoString, ms)
 
-import TellMeT.Bootstrap (fa_)
-import TellMeT.Components.Fetcher
-  ( Fetcher (Unfetched, Fetching, FetchFailed, Fetched)
-#ifdef __GHCJS__
-  , fetch
-#endif
-  )
-import TellMeT.GTFS
-  ( Agency, Feed, Route
-#ifdef __GHCJS__
-  , agencies, routes, putMap
-#endif
-  )
+import           TellMeT.Bootstrap          (fa_)
+import           TellMeT.Components.Fetcher (Fetcher (FetchFailed, Fetched, Fetching, Unfetched))
+import           TellMeT.GTFS               (Agency, Feed, Route, Trip,
+                                             agencies, putMap, routes)
+import           TellMeT.Util               (Identifier)
 
 #ifdef __GHCJS__
-import Control.Monad.Writer.Class (tell)
-import Data.Default (def)
-import Lens.Micro.Mtl ((.=), use)
-import Miso.Types (Transition)
-import TellMeT.REST (linkAgencies, linkRoutes)
+import           Control.Monad.Writer.Class (tell)
+import           Data.Default               (def)
+import           Lens.Micro.Mtl             (use, (.=))
+import           Miso.Types                 (Transition)
+import           TellMeT.Components.Fetcher (fetch)
+import           TellMeT.REST               (linkAgencies, linkRoutes,
+                                             linkTripsForRoute)
 #endif
 
 class HasFeed model where
@@ -37,6 +33,7 @@ class HasFeed model where
 class FeedFetcher model where
   fetchAgencies :: Lens' model (Fetcher [Agency])
   fetchRoutes :: Lens' model (Fetcher [Route])
+  tripsForRouteFetcher :: Lens' model (Map (Identifier Text Route) (Fetcher [Trip]))
 
 class FeedFetchAction action where
   fetchFeed :: action
@@ -47,6 +44,16 @@ class FeedFetchAction action where
   fetchedRoutes :: Fetcher [Route] -> action
   ifFetchedRoutes :: (Monad m)
                   => action -> (Fetcher [Route] -> m ()) -> m ()
+  fetchTripsForRoute :: Identifier Text Route -> action
+  ifFetchTripsForRoute :: (Monad m)
+                       => action -> (Identifier Text Route -> m ()) -> m ()
+  fetchedTripsForRoute :: Identifier Text Route
+                       -> Fetcher [Trip]
+                       -> action
+  ifFetchedTripsForRoute :: (Monad m)
+                         => action
+                         -> (Identifier Text Route -> Fetcher [Trip] -> m ())
+                         -> m ()
 
 -- | If we have the base feed already, run some other view function;
 -- otherwise ignore the view function and fetch the feed.
@@ -81,8 +88,8 @@ haveFeed :: (FeedFetcher model) => model -> Bool
 haveFeed model = do
   case (model ^. fetchAgencies, model ^. fetchRoutes) of
     (Fetched _, Fetched _) -> True
-    _ -> False
-  
+    _                      -> False
+
 #ifdef __GHCJS__
 updateFeedFetch :: (HasFeed model, FeedFetcher model, FeedFetchAction action)
                 => action
@@ -101,6 +108,13 @@ updateFeedFetch a = do
   ifFetchedRoutes a $ \rs -> do
     fetchRoutes .= rs
     buildFeed
+  ifFetchTripsForRoute a $ \routeId -> do
+    tripsForRouteFetcher . at routeId .= Just Fetching
+    tell [ \dispatch -> do
+             trips <- fetch (linkTripsForRoute routeId)
+             dispatch $ fetchedTripsForRoute routeId trips ]
+  ifFetchedTripsForRoute a $ \routeId trips -> do
+    tripsForRouteFetcher . at routeId .= Just trips
   return ()
 
 buildFeed :: (HasFeed model, FeedFetcher model) => Transition action model ()

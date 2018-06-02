@@ -1,15 +1,15 @@
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds        #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeOperators    #-}
 
 module TellMeT.REST where
 
-import Data.Proxy (Proxy (Proxy))
-import Data.Text (Text)
-import Network.URI (URI)
-import Servant.API (Capture, Get, JSON, (:>), (:<|>) (..), safeLink)
-import TellMeT.GTFS (Agency, Stop, Route, Trip)
-import TellMeT.Util (Identifier)
+import           Data.Proxy   (Proxy (Proxy))
+import           Data.Text    (Text)
+import           Network.URI  (URI)
+import           Servant.API  ((:<|>) (..), (:>), Capture, Get, JSON, safeLink)
+import           TellMeT.GTFS (Agency, Route, Stop, Trip)
+import           TellMeT.Util (Identifier)
 
 type MapAPI a = Get '[JSON] [a] :<|>
                 Capture "id" (Identifier Text a) :> Get '[JSON] a
@@ -31,3 +31,7 @@ linkAgencies = safeLink (Proxy @RestAPI)
 linkRoutes :: URI
 linkRoutes = safeLink (Proxy @RestAPI)
              (Proxy @("api" :> "route" :> Get '[JSON] [Route]))
+
+linkTripsForRoute :: Identifier Text Route -> URI
+linkTripsForRoute = safeLink (Proxy @RestAPI)
+                    (Proxy @("api" :> "route" :> RouteTripsAPI))
