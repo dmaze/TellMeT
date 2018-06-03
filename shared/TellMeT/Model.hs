@@ -1,7 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
 -- | Core data model for the TellMeT application.
-module TellMeT.Model where
+module TellMeT.Model (Model, initialModel) where
 
 import           Data.Default                   (def)
 import           Data.Map                       (Map)
@@ -16,6 +16,8 @@ import           TellMeT.GTFS                   (Agency, Feed, Route, Trip)
 import           TellMeT.Pages                  (Page)
 import           TellMeT.Util                   (Identifier)
 
+-- | Core data model for the TellMeT application.  The type itself is
+-- opaque; all of the data in it can be accessed via its typeclasses.
 data Model = Model { _siteUri       :: URI
                    , _currentPage   :: Page
                    , _theFeed       :: Feed
@@ -39,6 +41,7 @@ instance FeedFetcher Model where
   tripsForRouteFetcher f m = (\t -> m { _tripsForRouteFetcher = t }) <$>
                              f (_tripsForRouteFetcher m)
 
+-- | Construct an initial (empty) model given the root site URI.
 initialModel :: URI -> Model
 initialModel uri = Model uri def def def def def
 

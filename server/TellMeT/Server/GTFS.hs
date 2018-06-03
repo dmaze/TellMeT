@@ -14,7 +14,9 @@ import           Data.Monoid          ((<>))
 import           Lens.Micro           (Lens', (%~))
 import           Prelude              hiding (readFile)
 
-import           TellMeT.GTFS         (Feed, agencies, routes, stops, trips)
+import           TellMeT.GTFS         (Feed, agencies, putCalendar,
+                                       putCalendarDate, putStopTime, routes,
+                                       stops, trips)
 import           TellMeT.Util         (Identified (Identifier), MapOf, addToMap)
 
 readFeed :: FilePath -> IO (Either String Feed)
@@ -33,6 +35,9 @@ feedFromArchive zipBytes = do
                 , feedFile True "stops.txt" archive (putMap stops)
                 , feedFile True "routes.txt" archive (putMap routes)
                 , feedFile True "trips.txt" archive (putMap trips)
+                , feedFile True "stop_times.txt" archive putStopTime
+                , feedFile True "calendar.txt" archive putCalendar
+                , feedFile False "calendar_dates.txt" archive putCalendarDate
                 ]
   return $ foldr (.) id fs $ def
 
