@@ -5,7 +5,7 @@
 -- | Miscellaneous utilities.
 module TellMeT.Util where
 
-import           Data.Map (Map, insert)
+import           Data.Map.Strict (Map, insert)
 
 -- | Things that have unique identifiers.
 class Identified a where

@@ -109,14 +109,14 @@ maybeBool 2 = Just False
 maybeBool _ = Nothing
 
 -- | A transit agency, as described in a GTFS feed.
-data Agency = Agency { agencyId       :: Identifier Agency
-                     , agencyName     :: Text
-                     , agencyUrl      :: Text
-                     , agencyTimeZone :: Text
-                     , agencyLang     :: Maybe Text
-                     , agencyPhone    :: Maybe Text
-                     , agencyFareUrl  :: Maybe Text
-                     , agencyEmail    :: Maybe Text
+data Agency = Agency { agencyId       :: !(Identifier Agency)
+                     , agencyName     :: !Text
+                     , agencyUrl      :: !Text
+                     , agencyTimeZone :: !Text
+                     , agencyLang     :: !(Maybe Text)
+                     , agencyPhone    :: !(Maybe Text)
+                     , agencyFareUrl  :: !(Maybe Text)
+                     , agencyEmail    :: !(Maybe Text)
                      } deriving (Eq, Show, Generic)
 
 instance Identified Agency where
@@ -157,18 +157,18 @@ instance ToJSON LocationType where
   toJSON Entrance = toJSON ("entrance" :: Text)
 
 -- | A place where some transit vehicle stops.
-data Stop = Stop { stopId             :: Identifier Stop
-                 , stopCode           :: Text
-                 , stopName           :: Text
-                 , stopDesc           :: Text
-                 , stopLat            :: Float
-                 , stopLon            :: Float
-                 , zoneId             :: Text
-                 , stopUrl            :: Text
-                 , locationType       :: LocationType
-                 , parentStation      :: Text
-                 , stopTimezone       :: Text
-                 , wheelchairBoarding :: Maybe Bool
+data Stop = Stop { stopId             :: !(Identifier Stop)
+                 , stopCode           :: !Text
+                 , stopName           :: !Text
+                 , stopDesc           :: !Text
+                 , stopLat            :: !Float
+                 , stopLon            :: !Float
+                 , zoneId             :: !Text
+                 , stopUrl            :: !Text
+                 , locationType       :: !LocationType
+                 , parentStation      :: !Text
+                 , stopTimezone       :: !Text
+                 , wheelchairBoarding :: !(Maybe Bool)
                  } deriving (Eq, Show, Generic)
 
 instance Identified Stop where
@@ -224,16 +224,16 @@ instance ToJSON RouteType where
   toJSON Funicular = toJSON ("funicular" :: Text)
 
 -- | A single transit route as described in a GTFS feed.
-data Route = Route { routeId        :: Identifier Route
-                   , routeAgencyId  :: Identifier Agency
-                   , routeShortName :: Text
-                   , routeLongName  :: Text
-                   , routeDesc      :: Text
-                   , routeType      :: RouteType
-                   , routeUrl       :: Text
-                   , routeColor     :: Text
-                   , routeTextColor :: Text
-                   , routeSortOrder :: Int
+data Route = Route { routeId        :: !(Identifier Route)
+                   , routeAgencyId  :: !(Identifier Agency)
+                   , routeShortName :: !Text
+                   , routeLongName  :: !Text
+                   , routeDesc      :: !Text
+                   , routeType      :: !RouteType
+                   , routeUrl       :: !Text
+                   , routeColor     :: !Text
+                   , routeTextColor :: !Text
+                   , routeSortOrder :: !Int
                    } deriving (Eq, Show, Generic)
 
 instance Identified Route where
@@ -262,17 +262,17 @@ instance FromNamedRecord Route where
     (m .: "route_sort_order" <|> return 0)
 
 -- | A single trip as described in the GTFS feed.
-data Trip = Trip { tripRouteId              :: Identifier Route
-                 , tripServiceId            :: Identifier Service
-                 , tripId                   :: Identifier Trip
-                 , tripHeadsign             :: Text
-                 , tripShortName            :: Text
-                 , tripDirectionId          :: Maybe Int
-                 , tripBlockId              :: Text
-                 , tripShapeId              :: Text
-                 , tripWheelchairAccessible :: Maybe Bool
-                 , tripBikesAllowed         :: Maybe Bool
-                 , tripStopTimes            :: [StopTime]
+data Trip = Trip { tripRouteId              :: !(Identifier Route)
+                 , tripServiceId            :: !(Identifier Service)
+                 , tripId                   :: !(Identifier Trip)
+                 , tripHeadsign             :: !Text
+                 , tripShortName            :: !Text
+                 , tripDirectionId          :: !(Maybe Int)
+                 , tripBlockId              :: !Text
+                 , tripShapeId              :: !Text
+                 , tripWheelchairAccessible :: !(Maybe Bool)
+                 , tripBikesAllowed         :: !(Maybe Bool)
+                 , tripStopTimes            :: ![StopTime]
                  } deriving (Eq, Show, Generic)
 
 instance Identified Trip where
@@ -318,16 +318,16 @@ instance ToJSON PickupType where
   toJSON ContactDriver = toJSON ("contact_driver" :: Text)
 
 -- | A single stop on a single trip.
-data StopTime = StopTime { stopTimeTripId            :: Identifier Trip
-                         , stopTimeArrivalTime       :: Text
-                         , stopTimeDepartureTime     :: Text
-                         , stopTimeStopId            :: Identifier Stop
-                         , stopTimeStopSequence      :: Int
-                         , stopTimeStopHeadsign      :: Text
-                         , stopTimePickupType        :: PickupType
-                         , stopTimeDropOffType       :: PickupType
-                         , stopTimeShapeDistTraveled :: Maybe Float
-                         , stopTimeTimepoint         :: Bool
+data StopTime = StopTime { stopTimeTripId            :: !(Identifier Trip)
+                         , stopTimeArrivalTime       :: !Text
+                         , stopTimeDepartureTime     :: !Text
+                         , stopTimeStopId            :: !(Identifier Stop)
+                         , stopTimeStopSequence      :: !Int
+                         , stopTimeStopHeadsign      :: !Text
+                         , stopTimePickupType        :: !PickupType
+                         , stopTimeDropOffType       :: !PickupType
+                         , stopTimeShapeDistTraveled :: !(Maybe Float)
+                         , stopTimeTimepoint         :: !Bool
                          } deriving (Eq, Show, Generic)
 
 instance FromJSON StopTime where
@@ -353,9 +353,9 @@ instance FromNamedRecord StopTime where
 -- "weekdays".  This doesn't correspond to a concrete GTFS object,
 -- but trips, calendar blocks, and specific dates all refer to
 -- services.
-data Service = Service { serviceId       :: Identifier Service
-                       , serviceCalendar :: Maybe Calendar
-                       , serviceDates    :: [CalendarDate]
+data Service = Service { serviceId       :: !(Identifier Service)
+                       , serviceCalendar :: !(Maybe Calendar)
+                       , serviceDates    :: ![CalendarDate]
                        } deriving (Eq, Show, Generic)
 
 instance Identified Service where
@@ -377,16 +377,16 @@ instance Default Service where
 -- on the specified days of the week, from the specified start
 -- date through the specified end date.  A feed is specified
 -- to contain at most one calendar record per service ID.
-data Calendar = Calendar { calendarServiceId :: Identifier Service
-                         , calendarMonday    :: Bool
-                         , calendarTuesday   :: Bool
-                         , calendarWednesday :: Bool
-                         , calendarThursday  :: Bool
-                         , calendarFriday    :: Bool
-                         , calendarSaturday  :: Bool
-                         , calendarSunday    :: Bool
-                         , calendarStartDate :: Text
-                         , calendarEndDate   :: Text
+data Calendar = Calendar { calendarServiceId :: !(Identifier Service)
+                         , calendarMonday    :: !Bool
+                         , calendarTuesday   :: !Bool
+                         , calendarWednesday :: !Bool
+                         , calendarThursday  :: !Bool
+                         , calendarFriday    :: !Bool
+                         , calendarSaturday  :: !Bool
+                         , calendarSunday    :: !Bool
+                         , calendarStartDate :: !Text
+                         , calendarEndDate   :: !Text
                          } deriving (Eq, Show, Generic)
 
 instance Identified Calendar where
@@ -435,9 +435,9 @@ instance ToJSON ExceptionType where
 -- "this service is weekends only, plus Memorial Day").  A service may
 -- also have no 'Calendar' record but only have date records, in which
 -- case it only runs on a specific set of dates.
-data CalendarDate = CalendarDate { calendarDateServiceId :: Identifier Service
-                                 , calendarDateDate :: Text
-                                 , calendarDateExceptionType :: ExceptionType
+data CalendarDate = CalendarDate { calendarDateServiceId :: !(Identifier Service)
+                                 , calendarDateDate :: !Text
+                                 , calendarDateExceptionType :: !ExceptionType
                                  } deriving (Eq, Show, Generic)
 
 instance Identified CalendarDate where
