@@ -70,6 +70,7 @@ executable server
                     , lucid          >= 2.9  && < 2.10
                     , microlens      >= 0.4  && < 0.5
                     , microlens-ghc  >= 0.4  && < 0.5
+                    , microlens-mtl  >= 0.1  && < 0.2
                     , miso           >= 0.20 && < 0.21
                     , mtl            >= 2.2  && < 2.3
                     , network-uri    >= 2.6  && < 2.7

@@ -373,6 +373,14 @@ instance ToJSON Service where
 instance Default Service where
   def = Service (ServiceIdentifier "") Nothing []
 
+-- | Create a service description from an extant calendar.
+serviceFromCalendar :: Calendar -> Service
+serviceFromCalendar c = Service (calendarServiceId c) (Just c) []
+
+-- | Create a service description from a single calendar date.
+serviceFromCalendarDate :: CalendarDate -> Service
+serviceFromCalendarDate cd = Service (calendarDateServiceId cd) Nothing [cd]
+
 -- | A generic day-of-week-based schedule.  The service runs
 -- on the specified days of the week, from the specified start
 -- date through the specified end date.  A feed is specified
