@@ -17,15 +17,22 @@
 module TellMeT.GTFS where
 
 import           Control.Applicative ((<|>))
+import           Control.Monad       (guard)
 import           Data.Aeson          (genericParseJSON, genericToJSON, withText)
 import           Data.Aeson.Types    (FromJSON (parseJSON),
                                       Options (fieldLabelModifier),
                                       ToJSON (toJSON), camelTo2, defaultOptions)
-import           Data.Csv            (FromNamedRecord (parseNamedRecord), (.:))
+import           Data.Char           (digitToInt, isDigit)
+import           Data.Csv            (FromField (parseField),
+                                      FromNamedRecord (parseNamedRecord), (.:))
 import           Data.Default        (Default (def))
 import           Data.List           (sortOn)
 import           Data.Monoid         ((<>))
 import           Data.Text           (Text)
+import qualified Data.Text           as Text
+import           Data.Text.Encoding  (decodeLatin1)
+import           Data.Time.Format    (defaultTimeLocale, formatTime)
+import           Data.Time.LocalTime (TimeOfDay (TimeOfDay))
 import           GHC.Generics        (Generic)
 import           Lens.Micro          (at, (%~))
 import           Lens.Micro.GHC      ()
@@ -317,10 +324,88 @@ instance ToJSON PickupType where
   toJSON PhoneAgency   = toJSON ("phone_agency" :: Text)
   toJSON ContactDriver = toJSON ("contact_driver" :: Text)
 
+-- | The time when a StopTime occurs.  This is in the form of seconds
+-- since "midnight", where "midnight" is defined as 12 hours before
+-- noon (which may not be actual midnight due to daylight savings).
+-- Its JSON serialization is in HH:MM:SS form, matching what is
+-- allowed in the GTFS CSV format.
+newtype StopTimeTime = StopTimeTime Int deriving (Eq, Ord, Show)
+
+instance FromJSON StopTimeTime where
+  parseJSON = withText "StopTimeTime" parseStopTimeTime
+
+instance ToJSON StopTimeTime where
+  toJSON = toJSON . showStopTimeTime
+
+instance FromField StopTimeTime where
+  parseField = parseStopTimeTime . decodeLatin1
+
+-- | Make a stop-time time from hours, minutes, and seconds.
+hmsToStopTimeTime :: Int -> Int -> Int -> StopTimeTime
+hmsToStopTimeTime h m s = StopTimeTime $ (h * 60 + m) * 60 + s
+
+-- | Convert a time-of-day structure to a stop-time time.
+todToStopTimeTime :: TimeOfDay -> StopTimeTime
+todToStopTimeTime (TimeOfDay hours minutes seconds) =
+  hmsToStopTimeTime hours minutes (round seconds)
+
+-- | Parse a text blob into a stop-time time.  The text blob should
+-- look like "HH:MM:SS" or "H:MM:SS".  Fails in the monad if the
+-- format is wrong.
+parseStopTimeTime :: (Monad m) => Text -> m StopTimeTime
+parseStopTimeTime tt =
+  case parseIt tt of
+    Nothing  -> fail $ Text.unpack $ "invalid time " <> tt
+    Just stt -> return stt
+  where num c = if isDigit c then Just (digitToInt c) else Nothing
+        unconsNum t = do (c, t') <- Text.uncons t
+                         n <- num c
+                         return (n, t')
+        colon t = do (c, t') <- Text.uncons t
+                     guard $ c == ':'
+                     return t'
+        twoDigit tens ones = tens * 10 + ones
+        parseIt t0 = do
+          (h1, t1) <- unconsNum t0
+          (h2c, t2) <- Text.uncons t1
+          (h, t3) <- if h2c == ':'
+                    then return (h1, t2)
+                    else do h2 <- num h2c
+                            t3' <- colon t2
+                            return (twoDigit h1 h2, t3')
+          (m1, t4) <- unconsNum t3
+          (m2, t5) <- unconsNum t4
+          let m = twoDigit m1 m2
+          t6 <- colon t5
+          (s1, t7) <- unconsNum t6
+          (s2, t8) <- unconsNum t7
+          let s = twoDigit s1 s2
+          guard $ Text.null t8
+          return $ hmsToStopTimeTime h m s
+
+-- | Convert a stop-time time (in seconds since midnight) to a
+-- time-of-day structure.  We use this so that we can have a more
+-- memory-efficient storage, since there are many many stop-times.
+-- Note that this can produce technically invalid times of day: a
+-- service that runs past midnight will have a GTFS time after
+-- 24:00:00 which is technically out of bounds.
+stopTimeTimeToTod :: StopTimeTime -> TimeOfDay
+stopTimeTimeToTod (StopTimeTime manySeconds) =
+  let (manyMinutes, seconds) = divMod manySeconds 60
+      (hours, minutes) = divMod manyMinutes 60
+  in TimeOfDay hours minutes (fromIntegral seconds)
+
+-- | Convert a stop-time time to a printable string, in the form
+-- "HH:MM:SS".
+showStopTimeTime :: StopTimeTime -> Text
+showStopTimeTime = Text.pack .
+                   formatTime defaultTimeLocale "%T" .
+                   stopTimeTimeToTod
+
 -- | A single stop on a single trip.
 data StopTime = StopTime { stopTimeTripId            :: !(Identifier Trip)
-                         , stopTimeArrivalTime       :: !Text
-                         , stopTimeDepartureTime     :: !Text
+                         , stopTimeArrivalTime       :: !StopTimeTime
+                         , stopTimeDepartureTime     :: !StopTimeTime
                          , stopTimeStopId            :: !(Identifier Stop)
                          , stopTimeStopSequence      :: !Int
                          , stopTimeStopHeadsign      :: !Text
