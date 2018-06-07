@@ -12,8 +12,8 @@ import           Miso.String                (MisoString, ms)
 
 import           TellMeT.Bootstrap          (fa_)
 import           TellMeT.Components.Fetcher (Fetcher (FetchFailed, Fetched, Fetching, Unfetched))
-import           TellMeT.GTFS               (Agency, Feed, Route, Trip,
-                                             agencies, routes)
+import           TellMeT.GTFS               (Agency, Feed, Route,Service, Trip,
+                                             agencies, routes, services)
 import           TellMeT.Util               (Identifier, addToMap)
 
 #ifdef __GHCJS__
@@ -22,7 +22,7 @@ import           Data.Default               (def)
 import           Lens.Micro.Mtl             (use, (.=))
 import           Miso.Types                 (Transition)
 import           TellMeT.Components.Fetcher (fetch)
-import           TellMeT.REST               (linkAgencies, linkRoutes,
+import           TellMeT.REST               (linkAgencies, linkRoutes, linkServices,
                                              linkTripsForRoute)
 #endif
 
@@ -32,6 +32,7 @@ class HasFeed model where
 class FeedFetcher model where
   fetchAgencies :: Lens' model (Fetcher [Agency])
   fetchRoutes :: Lens' model (Fetcher [Route])
+  fetchServices :: Lens' model (Fetcher [Service])
   tripsForRouteFetcher :: Lens' model (Map (Identifier Route) (Fetcher [Trip]))
 
 class FeedFetchAction action where
@@ -43,6 +44,9 @@ class FeedFetchAction action where
   fetchedRoutes :: Fetcher [Route] -> action
   ifFetchedRoutes :: (Monad m)
                   => action -> (Fetcher [Route] -> m ()) -> m ()
+  fetchedServices :: Fetcher [Service] -> action
+  ifFetchedServices :: (Monad m)
+                    => action -> (Fetcher [Service] -> m ()) -> m ()
   fetchTripsForRoute :: Identifier Route -> action
   ifFetchTripsForRoute :: (Monad m)
                        => action -> (Identifier Route -> m ()) -> m ()
@@ -65,7 +69,7 @@ viewAFetch title Unfetched = p_ []
   , text title
   ]
 viewAFetch title Fetching = p_ []
-  [ fa_ "circle-notch spin"
+  [ fa_ "circle-notch fa-spin"
   , text title
   ]
 viewAFetch title (FetchFailed msg) = p_ []
@@ -81,12 +85,14 @@ viewFeedFetch :: (FeedFetcher model) => model -> View action
 viewFeedFetch model = div_ []
   [ viewAFetch "Agencies" $ model ^. fetchAgencies
   , viewAFetch "Routes" $ model ^. fetchRoutes
+  , viewAFetch "Services" $ model ^. fetchServices
   ]
 
 haveFeed :: (FeedFetcher model) => model -> Bool
 haveFeed model = do
-  case (model ^. fetchAgencies, model ^. fetchRoutes) of
-    (Fetched _, Fetched _) -> True
+  case (model ^. fetchAgencies, model ^. fetchRoutes, \
+           model ^. fetchServices) of
+    (Fetched _, Fetched _, Fetched _) -> True
     _                      -> False
 
 #ifdef __GHCJS__
@@ -97,8 +103,10 @@ updateFeedFetch a = do
   ifFetchFeed a $ do
     fetchAgencies .= Fetching
     fetchRoutes .= Fetching
+    fetchServices .= Fetching
     tell [ \dispatch -> fetch linkAgencies >>= dispatch . fetchedAgencies
          , \dispatch -> fetch linkRoutes >>= dispatch . fetchedRoutes
+         , \dispatch -> fetch linkServices >>= dispatch . fetchedServices
          ]
     return ()
   ifFetchedAgencies a $ \as -> do
@@ -106,6 +114,9 @@ updateFeedFetch a = do
     buildFeed
   ifFetchedRoutes a $ \rs -> do
     fetchRoutes .= rs
+    buildFeed
+  ifFetchedServices a $ \ss -> do
+    fetchServices .= ss
     buildFeed
   ifFetchTripsForRoute a $ \routeId -> do
     tripsForRouteFetcher . at routeId .= Just Fetching
@@ -120,14 +131,16 @@ buildFeed :: (HasFeed model, FeedFetcher model) => Transition action model ()
 buildFeed = do
   fAgencies <- use fetchAgencies
   fRoutes <- use fetchRoutes
-  case (fAgencies, fRoutes) of
-    (Fetched theAgencies, Fetched theRoutes) ->
-      theFeed .= buildFeedFrom theAgencies theRoutes
+  fServices <- use fetchServices
+  case (fAgencies, fRoutes, fServices) of
+    (Fetched theAgencies, Fetched theRoutes, Fetched theServices) ->
+      theFeed .= buildFeedFrom theAgencies theRoutes theServices
     _ -> return ()
 
-buildFeedFrom :: [Agency] -> [Route] -> Feed
-buildFeedFrom theAgencies theRoutes =
+buildFeedFrom :: [Agency] -> [Route] -> [Service] -> Feed
+buildFeedFrom theAgencies theRoutes theServices =
   agencies .~ foldr addToMap def theAgencies $
   routes .~ foldr addToMap def theRoutes $
+  services .~ foldr addToMap def theServices $
   def
 #endif

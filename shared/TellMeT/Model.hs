@@ -7,12 +7,13 @@ import           Data.Default                   (def)
 import           Data.Map                       (Map)
 import           Network.URI                    (URI)
 
-import           TellMeT.Components.FeedFetcher (FeedFetcher (fetchAgencies, fetchRoutes, tripsForRouteFetcher),
+import           TellMeT.Components.FeedFetcher (FeedFetcher (fetchAgencies, fetchRoutes, fetchServices, tripsForRouteFetcher),
                                                  HasFeed (theFeed))
 import           TellMeT.Components.Fetcher     (Fetcher)
 import           TellMeT.Components.Pages       (OnPage (currentPage))
 import           TellMeT.Components.URI         (SiteURI (siteURI))
-import           TellMeT.GTFS                   (Agency, Feed, Route, Trip)
+import           TellMeT.GTFS                   (Agency, Feed, Route, Service,
+                                                 Trip)
 import           TellMeT.Pages                  (Page)
 import           TellMeT.Util                   (Identifier)
 
@@ -23,6 +24,7 @@ data Model = Model { _siteUri       :: URI
                    , _theFeed       :: Feed
                    , _fetchAgencies :: Fetcher [Agency]
                    , _fetchRoutes   :: Fetcher [Route]
+                   , _fetchServices :: Fetcher [Service]
                    , _tripsForRouteFetcher :: Map (Identifier Route) (Fetcher [Trip])
                    } deriving (Eq, Show)
 
@@ -38,10 +40,11 @@ instance HasFeed Model where
 instance FeedFetcher Model where
   fetchAgencies f m = (\a -> m { _fetchAgencies = a}) <$> f (_fetchAgencies m)
   fetchRoutes f m = (\r -> m { _fetchRoutes = r }) <$> f (_fetchRoutes m)
+  fetchServices f m = (\s -> m { _fetchServices = s }) <$> f (_fetchServices m)
   tripsForRouteFetcher f m = (\t -> m { _tripsForRouteFetcher = t }) <$>
                              f (_tripsForRouteFetcher m)
 
 -- | Construct an initial (empty) model given the root site URI.
 initialModel :: URI -> Model
-initialModel uri = Model uri def def def def def
+initialModel uri = Model uri def def def def def def
 

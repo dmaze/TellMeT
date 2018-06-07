@@ -29,12 +29,12 @@ import           Servant.API                    ((:<|>), (:>), Capture,
                                                  safeLink)
 #endif
 
-import           TellMeT.Components.FeedFetcher (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedTripsForRoute, ifFetchFeed, ifFetchTripsForRoute, ifFetchedAgencies, ifFetchedRoutes, ifFetchedTripsForRoute),
+import           TellMeT.Components.FeedFetcher (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedServices, fetchedTripsForRoute, ifFetchFeed, ifFetchTripsForRoute, ifFetchedAgencies, ifFetchedRoutes, ifFetchedServices, ifFetchedTripsForRoute),
                                                  FeedFetcher)
 import           TellMeT.Components.Fetcher     (Fetcher)
 import           TellMeT.Components.Pages       (OnPage (currentPage), PageAction (goToPage, goToPageLink, ifGoToPage, ifNowOnPage, nowOnPage))
 import           TellMeT.Components.URI         (URIAction (changeURI, handleURIChange, ifChangeURI, ifHandleURIChange))
-import           TellMeT.GTFS                   (Agency, Route, Trip)
+import           TellMeT.GTFS                   (Agency, Route, Service, Trip)
 import           TellMeT.Pages                  (Page (NoPage, RouteList, RoutePage))
 import           TellMeT.Util                   (Identifier)
 #ifdef __GHCJS__
@@ -66,10 +66,12 @@ data Action
   | FetchedAgencies (Fetcher [Agency])
     -- | An announcement that we have fetched the list of routes.
   | FetchedRoutes (Fetcher [Route])
+    -- | An announcement that we have fetched the list of services.
+  | FetchedServices (Fetcher [Service])
     -- | Request to fetch the list of trips for a specific route.
-    | FetchTripsForRoute (Identifier Route)
+  | FetchTripsForRoute (Identifier Route)
     -- | Announce that we have received the list of trips for a route.
-    | FetchedTripsForRoute (Identifier Route) (Fetcher [Trip])
+  | FetchedTripsForRoute (Identifier Route) (Fetcher [Trip])
   deriving (Show, Eq)
 
 instance Default Action where
@@ -93,6 +95,9 @@ instance FeedFetchAction Action where
   fetchedRoutes = FetchedRoutes
   ifFetchedRoutes (FetchedRoutes ff) a = a ff
   ifFetchedRoutes _ _                  = return ()
+  fetchedServices = FetchedServices
+  ifFetchedServices (FetchedServices ff) a = a ff
+  ifFetchedServices _ _                    = return ()
   fetchTripsForRoute = FetchTripsForRoute
   ifFetchTripsForRoute (FetchTripsForRoute r) f = f r
   ifFetchTripsForRoute _ _                      = return ()

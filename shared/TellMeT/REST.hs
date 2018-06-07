@@ -32,6 +32,10 @@ linkRoutes :: URI
 linkRoutes = safeLink (Proxy @RestAPI)
              (Proxy @("api" :> "route" :> Get '[JSON] [Route]))
 
+linkServices :: URI
+linkServices = safeLink (Proxy @RestAPI)
+               (Proxy @("api" :> "service" :> Get '[JSON] [Service]))
+
 linkTripsForRoute :: Identifier Route -> URI
 linkTripsForRoute = safeLink (Proxy @RestAPI)
                     (Proxy @("api" :> "route" :> RouteTripsAPI))
