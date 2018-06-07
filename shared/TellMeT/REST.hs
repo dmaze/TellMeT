@@ -7,7 +7,7 @@ module TellMeT.REST where
 import           Data.Proxy   (Proxy (Proxy))
 import           Network.URI  (URI)
 import           Servant.API  ((:<|>) (..), (:>), Capture, Get, JSON, safeLink)
-import           TellMeT.GTFS (Agency, Route, Stop, Trip)
+import           TellMeT.GTFS (Agency, Route, Service, Stop, Trip)
 import           TellMeT.Util (Identifier)
 
 type MapAPI a = Get '[JSON] [a] :<|>
@@ -19,8 +19,9 @@ type RouteAPI = MapAPI Route :<|> RouteTripsAPI
 
 
 type RestAPI = "api" :> ("agency" :> MapAPI Agency :<|>
-                         "stop" :> MapAPI Stop :<|>
                          "route" :> RouteAPI :<|>
+                         "service" :> MapAPI Service :<|>
+                         "stop" :> MapAPI Stop :<|>
                          "trip" :> MapAPI Trip)
 
 linkAgencies :: URI

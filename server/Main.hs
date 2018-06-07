@@ -43,7 +43,7 @@ import           Paths_TellMeT                        (getDataDir)
 import           TellMeT.Action                       (Action, ViewRoutes)
 import           TellMeT.Components.Pages             (goToPageLink)
 import           TellMeT.GTFS                         (Feed, Route, agencies,
-                                                       routes, stops,
+                                                       routes, services, stops,
                                                        tripRouteId, trips)
 import           TellMeT.Model                        (initialModel)
 import           TellMeT.Pages                        (Page (RouteList, RoutePage))
@@ -117,8 +117,9 @@ static = serveDirectory
 
 restHandlers :: Feed -> Server RestAPI
 restHandlers feed = mapHandlers agencies feed :<|>
-                    mapHandlers stops feed :<|>
                     routeHandlers feed :<|>
+                    mapHandlers services feed :<|>
+                    mapHandlers stops feed :<|>
                     mapHandlers trips feed
 
 mapHandlers :: (Ord (Identifier a))
