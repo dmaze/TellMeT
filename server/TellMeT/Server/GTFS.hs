@@ -17,21 +17,23 @@ import           Data.Csv.Streaming         (Records (Cons, Nil), decodeByName)
 import           Data.Default               (def)
 import           Data.List                  (sortOn)
 import           Data.Map.Strict            (Map, alter, mergeWithKey)
+import qualified Data.Map.Strict            as Map
 import           Data.Monoid                ((<>))
 import           Lens.Micro                 (Lens', (%~))
 import           Lens.Micro.Mtl             (assign)
 import           Prelude                    hiding (readFile)
 
-import           TellMeT.GTFS               (CalendarDate, Feed, Service,
+import           TellMeT.GTFS               (CalendarDate, Feed, Service, Stop,
                                              StopTime, Trip, agencies,
                                              calendarDateServiceId, routes,
                                              serviceDates, serviceFromCalendar,
                                              serviceFromCalendarDate, services,
+                                             stopTimeStopId,
                                              stopTimeStopSequence,
                                              stopTimeTripId, stops,
                                              tripStopTimes, trips)
 import           TellMeT.Util               (Identified (Identifier), MapOf,
-                                             addToMap)
+                                             addToMap, identifier)
 
 readFeed :: FilePath -> IO (Either String Feed)
 readFeed path = do
@@ -50,10 +52,11 @@ feedFromBytes zipBytes = do
 feedFromArchive :: (MonadState Feed m, MonadError String m) => Archive -> m ()
 feedFromArchive archive = do
   feedFile True "agency.txt" archive >>= toMap >>= assign agencies
-  feedFile True "stops.txt" archive >>= toMap >>= assign stops
+  theStops <- feedFile True "stops.txt" archive >>= toMap
+  assign stops theStops
   feedFile True "routes.txt" archive >>= toMap >>= assign routes
   theTrips <- feedFile True "trips.txt" archive >>= toMap
-  feedFile True "stop_times.txt" archive >>= putStopTimes theTrips >>= assign trips
+  feedFile True "stop_times.txt" archive >>= putStopTimes theStops theTrips >>= assign trips
   theServices <- fmap serviceFromCalendar <$> feedFile True "calendar.txt" archive >>= toMap
   feedFile False "calendar_dates.txt" archive >>= putCalendarDates theServices >>= assign services
 
@@ -98,12 +101,17 @@ groupRecords f = foldRecords groupOne mempty
 -- corresponding trips.  If a stop time names a trip that does not exist,
 -- it is ignored.
 putStopTimes :: (MonadError String m)
-             => MapOf Trip -> Records StopTime -> m (MapOf Trip)
-putStopTimes theTrips records = do
-  grouped <- groupRecords stopTimeTripId records
+             => MapOf Stop -> MapOf Trip -> Records StopTime -> m (MapOf Trip)
+putStopTimes theStops theTrips records = do
+  let reusify r = r
+        { stopTimeTripId = reuseIdentifier theTrips $ stopTimeTripId r
+        , stopTimeStopId = reuseIdentifier theStops $ stopTimeStopId r
+        }
+  let records' = reusify <$> records
+  grouped <- groupRecords stopTimeTripId records'
   let sorted = sortOn stopTimeStopSequence <$> grouped
   return $ mergeWithKey
-    (\_ trip theStops -> Just trip { tripStopTimes = theStops })
+    (\_ trip theSTs -> Just trip { tripStopTimes = theSTs })
     id (const mempty) theTrips sorted
 
 -- | Add the records from a lazy record sequence of calendar dates
@@ -116,3 +124,14 @@ putCalendarDates = foldRecords $ \cd ->
       Nothing -> Just (serviceFromCalendarDate cd)
       Just s -> Just (s { serviceDates = serviceDates s <> [cd] }))
   (calendarDateServiceId cd)
+
+-- | If an identifier exists in a map, use the saved identifier.
+-- This helps reduce memory utilization when there are a large number
+-- of objects that contain object references, especially for StopTime
+-- records.
+reuseIdentifier :: (Identified a, Ord (Identifier a))
+                => MapOf a -> Identifier a -> Identifier a
+reuseIdentifier objs anId =
+  case Map.lookup anId objs of
+    Nothing  -> anId
+    Just obj -> identifier obj
