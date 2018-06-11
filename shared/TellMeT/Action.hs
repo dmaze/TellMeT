@@ -8,37 +8,38 @@
 -- | Core action type.
 module TellMeT.Action where
 
-import           Data.Default                   (Default (def))
-import           Data.Proxy                     (Proxy (Proxy))
-import           Network.URI                    (URI)
+import           Data.Default                     (Default (def))
+import           Data.Proxy                       (Proxy (Proxy))
+import           Network.URI                      (URI)
 
 #ifdef __GHCJS__
-import           Control.Monad                  (void)
-import           Data.Either                    (either)
-import qualified JavaScript.Object              as Object
-import           Lens.Micro.Mtl                 ((.=))
-import           Miso.Html                      (VTree (VTree),
-                                                 View (View, runView))
-import           Miso.Router                    (runRoute)
-import           Miso.Types                     (Transition, scheduleSub)
-import           Servant.API                    ((:<|>) ((:<|>)), (:>), Capture,
-                                                 safeLink)
+import           Control.Monad                    (void)
+import           Data.Either                      (either)
+import qualified JavaScript.Object                as Object
+import           Lens.Micro.Mtl                   ((.=))
+import           Miso.Html                        (VTree (VTree),
+                                                   View (View, runView))
+import           Miso.Router                      (runRoute)
+import           Miso.Types                       (Transition, scheduleSub)
+import           Servant.API                      ((:<|>) ((:<|>)), (:>),
+                                                   Capture, safeLink)
 #else
-import           Miso.Html                      (View)
-import           Servant.API                    ((:<|>), (:>), Capture,
-                                                 safeLink)
+import           Miso.Html                        (View)
+import           Servant.API                      ((:<|>), (:>), Capture,
+                                                   safeLink)
 #endif
 
-import           TellMeT.Components.FeedFetcher (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedServices, fetchedTripsForRoute, ifFetchFeed, ifFetchTripsForRoute, ifFetchedAgencies, ifFetchedRoutes, ifFetchedServices, ifFetchedTripsForRoute),
-                                                 FeedFetcher)
-import           TellMeT.Components.Fetcher     (Fetcher)
-import           TellMeT.Components.Pages       (OnPage (currentPage), PageAction (goToPage, goToPageLink, ifGoToPage, ifNowOnPage, nowOnPage))
-import           TellMeT.Components.URI         (URIAction (changeURI, handleURIChange, ifChangeURI, ifHandleURIChange))
-import           TellMeT.GTFS                   (Agency, Route, Service, Trip)
-import           TellMeT.Pages                  (Page (NoPage, RouteList, RoutePage))
-import           TellMeT.Util                   (Identifier)
+import           TellMeT.Components.FeedFetcher   (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedServices, fetchedTripsForRoute, ifFetchFeed, ifFetchTripsForRoute, ifFetchedAgencies, ifFetchedRoutes, ifFetchedServices, ifFetchedTripsForRoute),
+                                                   FeedFetcher)
+import           TellMeT.Components.Fetcher       (Fetcher)
+import           TellMeT.Components.Pages         (OnPage (currentPage), PageAction (goToPage, goToPageLink, ifGoToPage, ifNowOnPage, nowOnPage))
+import           TellMeT.Components.ServicePicker (PickService (ifPickService, pickService))
+import           TellMeT.Components.URI           (URIAction (changeURI, handleURIChange, ifChangeURI, ifHandleURIChange))
+import           TellMeT.GTFS                     (Agency, Route, Service, Trip)
+import           TellMeT.Pages                    (Page (NoPage, RouteList, RoutePage))
+import           TellMeT.Util                     (Identifier)
 #ifdef __GHCJS__
-import           TellMeT.Components.RoutePage   (onRoutePage)
+import           TellMeT.Components.RoutePage     (onRoutePage)
 #endif
 
 -- | The concrete type of an action.
@@ -72,6 +73,8 @@ data Action
   | FetchTripsForRoute (Identifier Route)
     -- | Announce that we have received the list of trips for a route.
   | FetchedTripsForRoute (Identifier Route) (Fetcher [Trip])
+    -- | Pick a specific service, to filter by day-of-week.
+  | PickService (Maybe (Identifier Service))
   deriving (Show, Eq)
 
 instance Default Action where
@@ -113,6 +116,11 @@ instance PageAction Page Action where
   nowOnPage = NowOnPage
   ifNowOnPage (NowOnPage p) f = f p
   ifNowOnPage _ _             = return ()
+
+instance PickService Action where
+  pickService = PickService
+  ifPickService (PickService s) f = f s
+  ifPickService _ _               = return ()
 
 -- The page-link wiring winds up here.  We have the unfortunate
 -- dependency chain that the Servant types depend on the concrete

@@ -1,21 +1,23 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE OverloadedStrings     #-}
 
 -- | Core data model for the TellMeT application.
 module TellMeT.Model (Model, initialModel) where
 
-import           Data.Default                   (def)
-import           Data.Map                       (Map)
-import           Network.URI                    (URI)
+import           Data.Default                     (def)
+import           Data.Map                         (Map)
+import           Network.URI                      (URI)
 
-import           TellMeT.Components.FeedFetcher (FeedFetcher (fetchAgencies, fetchRoutes, fetchServices, tripsForRouteFetcher),
-                                                 HasFeed (theFeed))
-import           TellMeT.Components.Fetcher     (Fetcher)
-import           TellMeT.Components.Pages       (OnPage (currentPage))
-import           TellMeT.Components.URI         (SiteURI (siteURI))
-import           TellMeT.GTFS                   (Agency, Feed, Route, Service,
-                                                 Trip)
-import           TellMeT.Pages                  (Page)
-import           TellMeT.Util                   (Identifier)
+import           TellMeT.Components.FeedFetcher   (FeedFetcher (fetchAgencies, fetchRoutes, fetchServices, tripsForRouteFetcher),
+                                                   HasFeed (theFeed))
+import           TellMeT.Components.Fetcher       (Fetcher)
+import           TellMeT.Components.Pages         (OnPage (currentPage))
+import           TellMeT.Components.ServicePicker (PickedService (pickedService))
+import           TellMeT.Components.URI           (SiteURI (siteURI))
+import           TellMeT.GTFS                     (Agency, Feed, Route, Service,
+                                                   Trip)
+import           TellMeT.Pages                    (Page)
+import           TellMeT.Util                     (Identifier)
 
 -- | Core data model for the TellMeT application.  The type itself is
 -- opaque; all of the data in it can be accessed via its typeclasses.
@@ -26,6 +28,7 @@ data Model = Model { _siteUri       :: URI
                    , _fetchRoutes   :: Fetcher [Route]
                    , _fetchServices :: Fetcher [Service]
                    , _tripsForRouteFetcher :: Map (Identifier Route) (Fetcher [Trip])
+                   , _pickedService :: Maybe (Identifier Service)
                    } deriving (Eq, Show)
 
 instance SiteURI Model where
@@ -44,7 +47,10 @@ instance FeedFetcher Model where
   tripsForRouteFetcher f m = (\t -> m { _tripsForRouteFetcher = t }) <$>
                              f (_tripsForRouteFetcher m)
 
+instance PickedService Model where
+  pickedService f m = (\s -> m { _pickedService = s }) <$> f (_pickedService m)
+
 -- | Construct an initial (empty) model given the root site URI.
 initialModel :: URI -> Model
-initialModel uri = Model uri def def def def def def
+initialModel uri = Model uri def def def def def def def
 

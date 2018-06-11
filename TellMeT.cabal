@@ -25,6 +25,7 @@ library
                     , TellMeT.Components.RouteBadge
                     , TellMeT.Components.RouteList
                     , TellMeT.Components.RoutePage
+                    , TellMeT.Components.ServicePicker
                     , TellMeT.Components.URI
                     , TellMeT.GTFS
                     , TellMeT.Model
