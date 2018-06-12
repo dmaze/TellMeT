@@ -4,6 +4,7 @@
 module TellMeT.Components.ServicePicker where
 
 import           Data.Monoid        ((<>))
+import           Data.Time.Calendar (showGregorian)
 import           Lens.Micro.Mtl     (assign)
 import           Miso.Html          (View, text)
 import           Miso.Html.Element  (label_, option_, select_)
@@ -16,11 +17,13 @@ import           Miso.Types         (Transition)
 #endif
 
 import           TellMeT.GTFS       (Calendar, CalendarDate,
+                                     CalendarDay (CalendarDay),
                                      ExceptionType (Added, NoException, Removed),
                                      Identifier (ServiceIdentifier), Service,
                                      calendarDateDate,
-                                     calendarDateExceptionType, calendarFriday,
-                                     calendarMonday, calendarSaturday,
+                                     calendarDateExceptionType, calendarEndDate,
+                                     calendarFriday, calendarMonday,
+                                     calendarSaturday, calendarStartDate,
                                      calendarSunday, calendarThursday,
                                      calendarTuesday, calendarWednesday,
                                      serviceCalendar, serviceDates, serviceId)
@@ -85,14 +88,19 @@ calendarSummary (Just cal) = mconcat $
   , if calendarFriday cal then "F" else ""
   , if calendarSaturday cal then "Sa" else ""
   , if calendarSunday cal then "Su" else ""
+  , " from ", showDay (calendarStartDate cal)
+  , " to ", showDay (calendarEndDate cal)
   ]
 
 calendarDateSummary :: CalendarDate -> MisoString
 calendarDateSummary cd =
-  " " <> sym (calendarDateExceptionType cd) <> ms (calendarDateDate cd)
+  " " <> sym (calendarDateExceptionType cd) <> showDay (calendarDateDate cd)
   where sym NoException = "?"
         sym Added       = "+"
         sym Removed     = "-"
+
+showDay :: CalendarDay -> MisoString
+showDay (CalendarDay day) = ms $ showGregorian day
 
 #ifdef __GHCJS__
 updatePickService :: (PickedService model, PickService action)

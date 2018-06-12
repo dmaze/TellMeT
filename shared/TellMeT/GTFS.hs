@@ -31,6 +31,7 @@ import           Data.Monoid         ((<>))
 import           Data.Text           (Text)
 import qualified Data.Text           as Text
 import           Data.Text.Encoding  (decodeLatin1)
+import           Data.Time.Calendar  (Day, fromGregorian)
 import           Data.Time.Format    (defaultTimeLocale, formatTime)
 import           Data.Time.LocalTime (TimeOfDay (TimeOfDay))
 import           GHC.Generics        (Generic)
@@ -466,6 +467,37 @@ serviceFromCalendar c = Service (calendarServiceId c) (Just c) []
 serviceFromCalendarDate :: CalendarDate -> Service
 serviceFromCalendarDate cd = Service (calendarDateServiceId cd) Nothing [cd]
 
+-- | Specific dates, as formatted in the GTFS feed.
+newtype CalendarDay = CalendarDay Day deriving (Eq, Show, Ord)
+
+instance FromJSON CalendarDay where
+  parseJSON = withText "CalendarDay" parseCalendarDay
+
+instance ToJSON CalendarDay where
+  toJSON = toJSON . showCalendarDay
+
+instance FromField CalendarDay where
+  parseField = parseCalendarDay . decodeLatin1
+
+-- | Parse a text blob "YYYYMMDD" into a date.  Fails in the monad if
+-- the date is not valid.
+parseCalendarDay :: (Monad m) => Text -> m CalendarDay
+parseCalendarDay s =
+  let digits = Text.unpack s
+      check b = if b then return () else fail $ "invalid date " <> digits
+      nn = digitToInt <$> digits
+      yyyy = (nn !! 0) * 1000 + (nn !! 1) * 100 + (nn !! 2) * 10 + (nn !! 3)
+      mm = (nn !! 4) * 10 + (nn !! 5)
+      dd = (nn !! 6) * 10 + (nn !! 7)
+  in do check $ length digits == 8
+        check $ all isDigit digits
+        return $ CalendarDay $ fromGregorian (fromIntegral yyyy) mm dd
+
+-- | Serialize a date into a text blob "YYYYMMDD".
+showCalendarDay :: CalendarDay -> Text
+showCalendarDay (CalendarDay d) =
+  Text.pack $ formatTime defaultTimeLocale "%0Y%0m%0d" d
+
 -- | A generic day-of-week-based schedule.  The service runs
 -- on the specified days of the week, from the specified start
 -- date through the specified end date.  A feed is specified
@@ -478,8 +510,8 @@ data Calendar = Calendar { calendarServiceId :: !(Identifier Service)
                          , calendarFriday    :: !Bool
                          , calendarSaturday  :: !Bool
                          , calendarSunday    :: !Bool
-                         , calendarStartDate :: !Text
-                         , calendarEndDate   :: !Text
+                         , calendarStartDate :: !CalendarDay
+                         , calendarEndDate   :: !CalendarDay
                          } deriving (Eq, Show, Generic)
 
 instance Identified Calendar where
@@ -529,13 +561,13 @@ instance ToJSON ExceptionType where
 -- also have no 'Calendar' record but only have date records, in which
 -- case it only runs on a specific set of dates.
 data CalendarDate = CalendarDate { calendarDateServiceId :: !(Identifier Service)
-                                 , calendarDateDate :: !Text
+                                 , calendarDateDate :: !CalendarDay
                                  , calendarDateExceptionType :: !ExceptionType
                                  } deriving (Eq, Show, Generic)
 
 instance Identified CalendarDate where
   data Identifier CalendarDate =
-    CalendarDateIdentifier (Identifier Service) Text
+    CalendarDateIdentifier (Identifier Service) CalendarDay
   identifier cd = CalendarDateIdentifier
                   (calendarDateServiceId cd)
                   (calendarDateDate cd)
