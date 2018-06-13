@@ -101,7 +101,9 @@ viewRouteTrip theServices trip =
   let service = theServices ^. at (tripServiceId trip) . non def
       startTime = case tripStopTimes trip of
         []     -> "(no stops)"
-        (st:_) -> ms $ showStopTimeTime $ stopTimeDepartureTime st
+        (st:_) -> case stopTimeDepartureTime st of
+          Nothing  -> "???"
+          Just dep -> ms $ showStopTimeTime dep
       title = startTime <> " " <>
               tripTitle trip <>
               " (" <> serviceSummary service <> ")"

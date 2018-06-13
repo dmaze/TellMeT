@@ -300,11 +300,11 @@ instance FromNamedRecord Trip where
     (RouteIdentifier <$> m .: "route_id") <*>
     (ServiceIdentifier <$> m .: "service_id") <*>
     (TripIdentifier <$> m .: "trip_id") <*>
-    m .: "trip_headsign" <*>
-    m .: "trip_short_name" <*>
+    (m .: "trip_headsign" <|> return "") <*>
+    (m .: "trip_short_name" <|> return "") <*>
     (Just <$> m .: "direction_id" <|> return Nothing) <*>
-    m .: "block_id" <*>
-    m .: "shape_id" <*>
+    (m .: "block_id" <|> return "") <*>
+    (m .: "shape_id" <|> return "") <*>
     (maybeBool <$> m .: "wheelchair_accessible" <|> return Nothing) <*>
     (maybeBool <$> m .: "bikes_allowed" <|> return Nothing) <*>
     return []
@@ -405,8 +405,8 @@ showStopTimeTime = Text.pack .
 
 -- | A single stop on a single trip.
 data StopTime = StopTime { stopTimeTripId            :: !(Identifier Trip)
-                         , stopTimeArrivalTime       :: !StopTimeTime
-                         , stopTimeDepartureTime     :: !StopTimeTime
+                         , stopTimeArrivalTime       :: !(Maybe StopTimeTime)
+                         , stopTimeDepartureTime     :: !(Maybe StopTimeTime)
                          , stopTimeStopId            :: !(Identifier Stop)
                          , stopTimeStopSequence      :: !Int
                          , stopTimeStopHeadsign      :: !Text

@@ -11,7 +11,7 @@ import           Codec.Archive.Zip          (Archive, findEntryByPath,
                                              fromEntry, toArchiveOrFail)
 import           Control.Monad.Except       (MonadError, throwError)
 import           Control.Monad.State.Strict (MonadState, execStateT)
-import           Data.ByteString.Lazy       (ByteString, readFile)
+import           Data.ByteString.Lazy       (ByteString, readFile, uncons)
 import           Data.Csv                   (FromNamedRecord)
 import           Data.Csv.Streaming         (Records (Cons, Nil), decodeByName)
 import           Data.Default               (def)
@@ -68,9 +68,18 @@ feedFile required path archive =
     Nothing -> if required
       then throwError $ "missing zip file entry " <> path
       else return $ Nil Nothing mempty
-    Just bs -> case decodeByName bs of
+    Just bs -> case decodeByName (stripBOM bs) of
       Left err           -> throwError err
       Right (_, records) -> return records
+
+stripBOM :: ByteString -> ByteString
+stripBOM bs = case uncons bs of
+  Just (0xef, bs1) -> case uncons bs1 of
+    Just (0xbb, bs2) -> case uncons bs2 of
+      Just (0xbf, bs3) -> bs3
+      _                -> bs
+    _ -> bs
+  _ -> bs
 
 -- | Fold a lazy record sequence into a final state.
 foldRecords :: (MonadError String m) => (a -> s -> s) -> s -> Records a -> m s
