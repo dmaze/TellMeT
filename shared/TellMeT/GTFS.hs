@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -16,31 +17,49 @@
 -- and 'FromJSON' and 'ToJSON' to provide a REST interface.
 module TellMeT.GTFS where
 
-import           Control.Applicative ((<|>))
-import           Control.Monad       (guard)
-import           Data.Aeson          (genericParseJSON, genericToJSON, withText)
-import           Data.Aeson.Types    (FromJSON (parseJSON),
-                                      Options (fieldLabelModifier),
-                                      ToJSON (toJSON), camelTo2, defaultOptions)
-import           Data.Char           (digitToInt, isDigit)
-import           Data.Csv            (FromField (parseField),
-                                      FromNamedRecord (parseNamedRecord), (.:))
-import           Data.Default        (Default (def))
-import           Data.List           (sortOn)
-import           Data.Monoid         ((<>))
-import           Data.Text           (Text)
-import qualified Data.Text           as Text
-import           Data.Text.Encoding  (decodeLatin1)
-import           Data.Time.Calendar  (Day, fromGregorian)
-import           Data.Time.Format    (defaultTimeLocale, formatTime)
-import           Data.Time.LocalTime (TimeOfDay (TimeOfDay))
-import           GHC.Generics        (Generic)
-import           Lens.Micro          (at, (%~))
-import           Lens.Micro.GHC      ()
-import           Web.HttpApiData     (FromHttpApiData, ToHttpApiData)
+import           Control.Applicative             ((<|>))
+import           Control.Monad                   (guard)
+import           Data.Aeson.Types                (Options (fieldLabelModifier),
+                                                  camelTo2, defaultOptions)
+#ifndef __GHCJS__
+import           Data.Aeson                      (genericParseJSON,
+                                                  genericToJSON, withText)
+import           Data.Aeson.Types                (FromJSON (parseJSON),
+                                                  ToJSON (toJSON))
+#endif
+import           Data.Char                       (digitToInt, isDigit)
+import           Data.Csv                        (FromField (parseField), FromNamedRecord (parseNamedRecord),
+                                                  (.:))
+import           Data.Default                    (Default (def))
+import           Data.List                       (sortOn)
+import           Data.Monoid                     ((<>))
+import           Data.Text.Encoding              (decodeLatin1)
+import           Data.Time.Calendar              (Day, fromGregorian)
+import           Data.Time.Format                (defaultTimeLocale, formatTime)
+import           Data.Time.LocalTime             (TimeOfDay (TimeOfDay))
+import           GHC.Generics                    (Generic)
+#ifdef __GHCJS__
+import           JavaScript.JSON.Types.Generic   ()
+import           JavaScript.JSON.Types.Instances (FromJSON (parseJSON),
+                                                  ToJSON (toJSON),
+                                                  genericParseJSON,
+                                                  genericToJSON, withJSString)
+import           JavaScript.JSON.Types.Internal  (Parser, Value)
+#endif
+import           Lens.Micro                      (at, (%~))
+import           Lens.Micro.GHC                  ()
+import           Miso.String                     (MisoString, fromMisoString,
+                                                  toMisoString)
+import           Web.HttpApiData                 (FromHttpApiData,
+                                                  ToHttpApiData)
 
-import           TellMeT.Util        (Identified (Identifier, identifier),
-                                      MapOf)
+import           TellMeT.Util                    (Identified (Identifier, identifier),
+                                                  MapOf)
+
+#ifdef __GHCJS__
+withText :: String -> (MisoString -> Parser a) -> Value -> Parser a
+withText = withJSString
+#endif
 
 -- | Data extracted from an entire GTFS feed.
 data Feed = Feed { _agencies :: MapOf Agency
@@ -118,17 +137,17 @@ maybeBool _ = Nothing
 
 -- | A transit agency, as described in a GTFS feed.
 data Agency = Agency { agencyId       :: !(Identifier Agency)
-                     , agencyName     :: !Text
-                     , agencyUrl      :: !Text
-                     , agencyTimeZone :: !Text
-                     , agencyLang     :: !(Maybe Text)
-                     , agencyPhone    :: !(Maybe Text)
-                     , agencyFareUrl  :: !(Maybe Text)
-                     , agencyEmail    :: !(Maybe Text)
+                     , agencyName     :: !MisoString
+                     , agencyUrl      :: !MisoString
+                     , agencyTimeZone :: !MisoString
+                     , agencyLang     :: !(Maybe MisoString)
+                     , agencyPhone    :: !(Maybe MisoString)
+                     , agencyFareUrl  :: !(Maybe MisoString)
+                     , agencyEmail    :: !(Maybe MisoString)
                      } deriving (Eq, Show, Generic)
 
 instance Identified Agency where
-  newtype Identifier Agency = AgencyIdentifier Text
+  newtype Identifier Agency = AgencyIdentifier MisoString
     deriving (Eq, Show, Ord, FromJSON, ToJSON, FromHttpApiData,
               ToHttpApiData)
   identifier = agencyId
@@ -160,27 +179,27 @@ instance FromJSON LocationType where
     "entrance" -> return Entrance
     _          -> fail "invalid LocationType"
 instance ToJSON LocationType where
-  toJSON StopType = toJSON ("stop" :: Text)
-  toJSON Station  = toJSON ("station" :: Text)
-  toJSON Entrance = toJSON ("entrance" :: Text)
+  toJSON StopType = toJSON ("stop" :: MisoString)
+  toJSON Station  = toJSON ("station" :: MisoString)
+  toJSON Entrance = toJSON ("entrance" :: MisoString)
 
 -- | A place where some transit vehicle stops.
 data Stop = Stop { stopId             :: !(Identifier Stop)
-                 , stopCode           :: !Text
-                 , stopName           :: !Text
-                 , stopDesc           :: !Text
+                 , stopCode           :: !MisoString
+                 , stopName           :: !MisoString
+                 , stopDesc           :: !MisoString
                  , stopLat            :: !Float
                  , stopLon            :: !Float
-                 , zoneId             :: !Text
-                 , stopUrl            :: !Text
+                 , zoneId             :: !MisoString
+                 , stopUrl            :: !MisoString
                  , locationType       :: !LocationType
-                 , parentStation      :: !Text
-                 , stopTimezone       :: !Text
+                 , parentStation      :: !MisoString
+                 , stopTimezone       :: !MisoString
                  , wheelchairBoarding :: !(Maybe Bool)
                  } deriving (Eq, Show, Generic)
 
 instance Identified Stop where
-  newtype Identifier Stop = StopIdentifier Text
+  newtype Identifier Stop = StopIdentifier MisoString
     deriving (Eq, Show, Ord, FromJSON, ToJSON, FromHttpApiData,
               ToHttpApiData)
   identifier = stopId
@@ -222,30 +241,30 @@ instance FromJSON RouteType where
       "funicular"  -> return Funicular
       _            -> fail "invalid RouteType"
 instance ToJSON RouteType where
-  toJSON LightRail = toJSON ("light_rail" :: Text)
-  toJSON Subway    = toJSON ("subway" :: Text)
-  toJSON Rail      = toJSON ("rail" :: Text)
-  toJSON Bus       = toJSON ("bus" :: Text)
-  toJSON Ferry     = toJSON ("ferry" :: Text)
-  toJSON CableCar  = toJSON ("cable_car" :: Text)
-  toJSON Gondola   = toJSON ("gondola" :: Text)
-  toJSON Funicular = toJSON ("funicular" :: Text)
+  toJSON LightRail = toJSON ("light_rail" :: MisoString)
+  toJSON Subway    = toJSON ("subway" :: MisoString)
+  toJSON Rail      = toJSON ("rail" :: MisoString)
+  toJSON Bus       = toJSON ("bus" :: MisoString)
+  toJSON Ferry     = toJSON ("ferry" :: MisoString)
+  toJSON CableCar  = toJSON ("cable_car" :: MisoString)
+  toJSON Gondola   = toJSON ("gondola" :: MisoString)
+  toJSON Funicular = toJSON ("funicular" :: MisoString)
 
 -- | A single transit route as described in a GTFS feed.
 data Route = Route { routeId        :: !(Identifier Route)
                    , routeAgencyId  :: !(Identifier Agency)
-                   , routeShortName :: !Text
-                   , routeLongName  :: !Text
-                   , routeDesc      :: !Text
+                   , routeShortName :: !MisoString
+                   , routeLongName  :: !MisoString
+                   , routeDesc      :: !MisoString
                    , routeType      :: !RouteType
-                   , routeUrl       :: !Text
-                   , routeColor     :: !Text
-                   , routeTextColor :: !Text
+                   , routeUrl       :: !MisoString
+                   , routeColor     :: !MisoString
+                   , routeTextColor :: !MisoString
                    , routeSortOrder :: !Int
                    } deriving (Eq, Show, Generic)
 
 instance Identified Route where
-  newtype Identifier Route = RouteIdentifier Text
+  newtype Identifier Route = RouteIdentifier MisoString
     deriving (Eq, Show, Ord, FromJSON, ToJSON, FromHttpApiData,
               ToHttpApiData)
   identifier = routeId
@@ -273,18 +292,18 @@ instance FromNamedRecord Route where
 data Trip = Trip { tripRouteId              :: !(Identifier Route)
                  , tripServiceId            :: !(Identifier Service)
                  , tripId                   :: !(Identifier Trip)
-                 , tripHeadsign             :: !Text
-                 , tripShortName            :: !Text
+                 , tripHeadsign             :: !MisoString
+                 , tripShortName            :: !MisoString
                  , tripDirectionId          :: !(Maybe Int)
-                 , tripBlockId              :: !Text
-                 , tripShapeId              :: !Text
+                 , tripBlockId              :: !MisoString
+                 , tripShapeId              :: !MisoString
                  , tripWheelchairAccessible :: !(Maybe Bool)
                  , tripBikesAllowed         :: !(Maybe Bool)
                  , tripStopTimes            :: ![StopTime]
                  } deriving (Eq, Show, Generic)
 
 instance Identified Trip where
-  newtype Identifier Trip = TripIdentifier Text
+  newtype Identifier Trip = TripIdentifier MisoString
     deriving (Eq, Show, Ord, FromJSON, ToJSON, FromHttpApiData,
               ToHttpApiData)
   identifier = tripId
@@ -320,10 +339,10 @@ instance FromJSON PickupType where
     "contact_driver" -> return ContactDriver
     _                -> fail "invalid PickupType"
 instance ToJSON PickupType where
-  toJSON Scheduled     = toJSON ("scheduled" :: Text)
-  toJSON NotAvailable  = toJSON ("not_available" :: Text)
-  toJSON PhoneAgency   = toJSON ("phone_agency" :: Text)
-  toJSON ContactDriver = toJSON ("contact_driver" :: Text)
+  toJSON Scheduled     = toJSON ("scheduled" :: MisoString)
+  toJSON NotAvailable  = toJSON ("not_available" :: MisoString)
+  toJSON PhoneAgency   = toJSON ("phone_agency" :: MisoString)
+  toJSON ContactDriver = toJSON ("contact_driver" :: MisoString)
 
 -- | The time when a StopTime occurs.  This is in the form of seconds
 -- since "midnight", where "midnight" is defined as 12 hours before
@@ -333,13 +352,13 @@ instance ToJSON PickupType where
 newtype StopTimeTime = StopTimeTime Int deriving (Eq, Ord, Show)
 
 instance FromJSON StopTimeTime where
-  parseJSON = withText "StopTimeTime" parseStopTimeTime
+  parseJSON = withText "StopTimeTime" (parseStopTimeTime . toMisoString)
 
 instance ToJSON StopTimeTime where
   toJSON = toJSON . showStopTimeTime
 
 instance FromField StopTimeTime where
-  parseField = parseStopTimeTime . decodeLatin1
+  parseField = parseStopTimeTime . toMisoString . decodeLatin1
 
 -- | Make a stop-time time from hours, minutes, and seconds.
 hmsToStopTimeTime :: Int -> Int -> Int -> StopTimeTime
@@ -353,22 +372,23 @@ todToStopTimeTime (TimeOfDay hours minutes seconds) =
 -- | Parse a text blob into a stop-time time.  The text blob should
 -- look like "HH:MM:SS" or "H:MM:SS".  Fails in the monad if the
 -- format is wrong.
-parseStopTimeTime :: (Monad m) => Text -> m StopTimeTime
+parseStopTimeTime :: (Monad m) => MisoString -> m StopTimeTime
 parseStopTimeTime tt =
-  case parseIt tt of
-    Nothing  -> fail $ Text.unpack $ "invalid time " <> tt
+  case parseIt $ fromMisoString tt of
+    Nothing  -> fail $ fromMisoString $ "invalid time " <> tt
     Just stt -> return stt
   where num c = if isDigit c then Just (digitToInt c) else Nothing
-        unconsNum t = do (c, t') <- Text.uncons t
-                         n <- num c
-                         return (n, t')
-        colon t = do (c, t') <- Text.uncons t
-                     guard $ c == ':'
-                     return t'
+        uncons (c:cs) = Just (c, cs)
+        uncons _      = Nothing
+        unconsNum (c:cs) = do n <- num c
+                              return (n, cs)
+        unconsNum _ = Nothing
+        colon (':':cs) = return cs
+        colon _        = Nothing
         twoDigit tens ones = tens * 10 + ones
         parseIt t0 = do
           (h1, t1) <- unconsNum t0
-          (h2c, t2) <- Text.uncons t1
+          (h2c, t2) <- uncons t1
           (h, t3) <- if h2c == ':'
                     then return (h1, t2)
                     else do h2 <- num h2c
@@ -381,7 +401,7 @@ parseStopTimeTime tt =
           (s1, t7) <- unconsNum t6
           (s2, t8) <- unconsNum t7
           let s = twoDigit s1 s2
-          guard $ Text.null t8
+          guard $ t8 == []
           return $ hmsToStopTimeTime h m s
 
 -- | Convert a stop-time time (in seconds since midnight) to a
@@ -398,8 +418,8 @@ stopTimeTimeToTod (StopTimeTime manySeconds) =
 
 -- | Convert a stop-time time to a printable string, in the form
 -- "HH:MM:SS".
-showStopTimeTime :: StopTimeTime -> Text
-showStopTimeTime = Text.pack .
+showStopTimeTime :: StopTimeTime -> MisoString
+showStopTimeTime = toMisoString .
                    formatTime defaultTimeLocale "%T" .
                    stopTimeTimeToTod
 
@@ -409,7 +429,7 @@ data StopTime = StopTime { stopTimeTripId            :: !(Identifier Trip)
                          , stopTimeDepartureTime     :: !(Maybe StopTimeTime)
                          , stopTimeStopId            :: !(Identifier Stop)
                          , stopTimeStopSequence      :: !Int
-                         , stopTimeStopHeadsign      :: !Text
+                         , stopTimeStopHeadsign      :: !MisoString
                          , stopTimePickupType        :: !PickupType
                          , stopTimeDropOffType       :: !PickupType
                          , stopTimeShapeDistTraveled :: !(Maybe Float)
@@ -445,7 +465,7 @@ data Service = Service { serviceId       :: !(Identifier Service)
                        } deriving (Eq, Show, Generic)
 
 instance Identified Service where
-  newtype Identifier Service = ServiceIdentifier Text
+  newtype Identifier Service = ServiceIdentifier MisoString
     deriving (Eq, Show, Ord, FromJSON, ToJSON, FromHttpApiData,
               ToHttpApiData)
   identifier = serviceId
@@ -471,19 +491,19 @@ serviceFromCalendarDate cd = Service (calendarDateServiceId cd) Nothing [cd]
 newtype CalendarDay = CalendarDay Day deriving (Eq, Show, Ord)
 
 instance FromJSON CalendarDay where
-  parseJSON = withText "CalendarDay" parseCalendarDay
+  parseJSON = withText "CalendarDay" (parseCalendarDay . toMisoString)
 
 instance ToJSON CalendarDay where
   toJSON = toJSON . showCalendarDay
 
 instance FromField CalendarDay where
-  parseField = parseCalendarDay . decodeLatin1
+  parseField = parseCalendarDay . toMisoString . decodeLatin1
 
 -- | Parse a text blob "YYYYMMDD" into a date.  Fails in the monad if
 -- the date is not valid.
-parseCalendarDay :: (Monad m) => Text -> m CalendarDay
+parseCalendarDay :: (Monad m) => MisoString -> m CalendarDay
 parseCalendarDay s =
-  let digits = Text.unpack s
+  let digits = fromMisoString s
       check b = if b then return () else fail $ "invalid date " <> digits
       nn = digitToInt <$> digits
       yyyy = (nn !! 0) * 1000 + (nn !! 1) * 100 + (nn !! 2) * 10 + (nn !! 3)
@@ -494,9 +514,9 @@ parseCalendarDay s =
         return $ CalendarDay $ fromGregorian (fromIntegral yyyy) mm dd
 
 -- | Serialize a date into a text blob "YYYYMMDD".
-showCalendarDay :: CalendarDay -> Text
+showCalendarDay :: CalendarDay -> MisoString
 showCalendarDay (CalendarDay d) =
-  Text.pack $ formatTime defaultTimeLocale "%0Y%0m%0d" d
+  toMisoString $ formatTime defaultTimeLocale "%0Y%0m%0d" d
 
 -- | A generic day-of-week-based schedule.  The service runs
 -- on the specified days of the week, from the specified start
@@ -550,9 +570,9 @@ instance FromJSON ExceptionType where
     _              -> fail "invalid ExceptionType"
 
 instance ToJSON ExceptionType where
-  toJSON NoException = toJSON ("no_exception" :: Text)
-  toJSON Added       = toJSON ("added" :: Text)
-  toJSON Removed     = toJSON ("removed" :: Text)
+  toJSON NoException = toJSON ("no_exception" :: MisoString)
+  toJSON Added       = toJSON ("added" :: MisoString)
+  toJSON Removed     = toJSON ("removed" :: MisoString)
 
 -- | An exception to scheduled service on some specific date.  This is
 -- tied to a service ID.  It may specify days a service does or does
