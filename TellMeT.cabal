@@ -19,6 +19,7 @@ library
   exposed-modules:    TellMeT.Action
                     , TellMeT.Bootstrap
                     , TellMeT.Components.Chrome
+                    , TellMeT.Components.DirectionPicker
                     , TellMeT.Components.FeedFetcher
                     , TellMeT.Components.Fetcher
                     , TellMeT.Components.Pages

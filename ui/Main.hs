@@ -2,19 +2,20 @@
 
 module Main where
 
-import           Miso                             (App (..), Effect,
-                                                   defaultEvents,
-                                                   fromTransition, miso)
-import           Miso.Subscription.History        (uriSub)
+import           Miso                               (App (..), Effect,
+                                                     defaultEvents,
+                                                     fromTransition, miso)
+import           Miso.Subscription.History          (uriSub)
 
-import           TellMeT.Action                   (Action (FetchFeed),
-                                                   updatePage)
-import           TellMeT.Components.FeedFetcher   (updateFeedFetch)
-import           TellMeT.Components.RoutePage     (updateRoutePage)
-import           TellMeT.Components.ServicePicker (updatePickService)
-import           TellMeT.Components.URI           (handleURIChange, updateURI)
-import           TellMeT.Model                    (Model, initialModel)
-import           TellMeT.Routes                   (viewModel)
+import           TellMeT.Action                     (Action (FetchFeed),
+                                                     updatePage)
+import           TellMeT.Components.DirectionPicker (updatePickDirection)
+import           TellMeT.Components.FeedFetcher     (updateFeedFetch)
+import           TellMeT.Components.RoutePage       (updateRoutePage)
+import           TellMeT.Components.ServicePicker   (updatePickService)
+import           TellMeT.Components.URI             (handleURIChange, updateURI)
+import           TellMeT.Model                      (Model, initialModel)
+import           TellMeT.Routes                     (viewModel)
 
 updateModel :: Action -> Model -> Effect Action Model
 updateModel action = fromTransition $ do
@@ -23,6 +24,7 @@ updateModel action = fromTransition $ do
   updatePage action
   updateRoutePage action
   updatePickService action
+  updatePickDirection action
 
 main :: IO ()
 main = miso $ \uri -> App { model = initialModel uri
