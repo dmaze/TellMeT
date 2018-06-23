@@ -6,16 +6,17 @@
 -- | Display a page for a given route.
 module TellMeT.Components.RoutePage where
 
-import           Data.Default                       (def)
+import           Control.Applicative                ((<|>))
 import           Data.Map                           (Map)
 import qualified Data.Map                           as Map
 import           Data.Monoid                        ((<>))
 import qualified Data.Set                           as Set
 import           Lens.Micro                         (at, ix, non, (^.), (^..))
 import           Miso.Html                          (View, text)
-import           Miso.Html.Element                  (div_, form_, h1_, li_,
-                                                     span_, ul_)
-import           Miso.Html.Property                 (class_)
+import           Miso.Html.Element                  (div_, form_, h1_, span_,
+                                                     table_, tbody_, td_, th_,
+                                                     thead_, tr_)
+import           Miso.Html.Property                 (class_, scope_)
 import           Miso.String                        (MisoString, ms)
 
 #ifdef __GHCJS__
@@ -35,15 +36,19 @@ import           TellMeT.Components.FeedFetcher     (FeedFetchAction,
                                                      ifFetchedTripsForRoute,
                                                      viewAFetch)
 import           TellMeT.Components.Pages           (PageAction)
-import           TellMeT.Components.RouteBadge      (viewRouteBadge)
+import           TellMeT.Components.RouteBadge      (viewRouteBadge,
+                                                     viewRouteType)
 import           TellMeT.Components.ServicePicker   (PickService, PickedService,
                                                      pickedService,
-                                                     serviceSummary,
                                                      viewPickService)
-import           TellMeT.GTFS                       (Route, Service, Trip,
-                                                     routes, services,
-                                                     showStopTimeTime,
+import           TellMeT.GTFS                       (Route, RouteType, Service,
+                                                     Stop, StopTime, Trip,
+                                                     routeType, routes,
+                                                     services, showStopTimeTime,
+                                                     stopTimeArrivalTime,
                                                      stopTimeDepartureTime,
+                                                     stopTimeDepartureTime,
+                                                     stopTimeStopId,
                                                      tripBikesAllowed,
                                                      tripDirectionId,
                                                      tripHeadsign,
@@ -89,7 +94,7 @@ viewARoutePage :: (PageAction Page action, PickService action,
                -> View action
 viewARoutePage route aService aDirection theServices fetch = div_ []
   [ h1_ [] [ viewRouteBadge route ]
-  , viewRouteTrips aService aDirection theServices fetch
+  , viewRouteTrips (routeType route) aService aDirection theServices fetch
   ]
 
 tripTitle :: Trip -> MisoString
@@ -99,49 +104,77 @@ tripTitle trip = ms $
   else tripHeadsign trip
 
 viewRouteTrips :: (PickService action, PickDirection action)
-               => Maybe (Identifier Service)
+               => RouteType
+               -> Maybe (Identifier Service)
                -> Maybe Int
                -> MapOf Service
                -> Fetcher [Trip]
                -> View action
-viewRouteTrips aService aDirection theServices (Fetched trips) =
+viewRouteTrips rt aService aDirection theServices (Fetched trips) =
   let someServices = do sid <- visibleServices trips
                         theServices ^.. ix sid
       someDirections = visibleDirections trips aService
       picker = viewPickService aService someServices <>
                viewPickDirection aDirection someDirections
       someTrips = visibleTrips aService aDirection trips
-      lis = viewRouteTrip theServices <$> someTrips
+      header = viewHeader rt someTrips
+      rows = viewRows someTrips
   in div_ []
      [ form_ [ class_ "form-inline" ] picker
-     , ul_ [ class_ "list-unstyled" ] lis
-     ]
-viewRouteTrips _ _ _ fetch = viewAFetch "Fetching trips" fetch
+     , table_
+       [ class_ "table" ]
+       [ thead_ [] [ header ]
+       , tbody_ [] rows
+       ]
+      ]
+viewRouteTrips _ _ _ _ fetch = viewAFetch "Fetching trips" fetch
 
-viewRouteTrip :: MapOf Service -> Trip -> View action
-viewRouteTrip theServices trip =
-  let service = theServices ^. at (tripServiceId trip) . non def
-      startTime = case tripStopTimes trip of
-        []     -> "(no stops)"
-        (st:_) -> case stopTimeDepartureTime st of
-          Nothing  -> "???"
-          Just dep -> ms $ showStopTimeTime dep
-      title = startTime <> " " <>
-              tripTitle trip <>
-              " (" <> serviceSummary service <> ")"
-  in li_ []
-     [ text title
-     , viewOptionalFeature "wheelchair" (tripWheelchairAccessible trip)
-     , viewOptionalFeature "bicycle" (tripBikesAllowed trip)
-     ]
+viewHeader :: RouteType -> [Trip] -> View action
+viewHeader rt trips =
+  let _th_ = th_ [ scope_ "col" ]
+      icon _ = [viewRouteType rt]
+      title t = if tripShortName t == ""
+                then []
+                else [text $ tripShortName t]
+      wheelchair t = viewOptionalFeature "wheelchair" (tripWheelchairAccessible t)
+      bicycle t = viewOptionalFeature "bicycle" (tripBikesAllowed t)
+      tripHead t = _th_ $ icon t <> title t <> wheelchair t <> bicycle t
+  in tr_ [] ([_th_ [text ""]] <> (tripHead <$> trips))
 
-viewOptionalFeature :: MisoString -> Maybe Bool -> View action
-viewOptionalFeature _ Nothing = span_ [] []
-viewOptionalFeature icon (Just True) = fa_ icon
+viewRows :: [Trip] -> [View action]
+viewRows trips = viewStopRows (tripStopTimes <$> trips)
+
+viewStopRows :: [[StopTime]] -> [View action]
+viewStopRows sts =
+  if all null sts
+  then []
+  else let aST = head (concat sts)
+           aStop = stopTimeStopId aST
+           pickStop [] = (Nothing, [])
+           pickStop (x:xs) | aStop == stopTimeStopId x = (Just x, xs)
+                           | otherwise = (Nothing, (x:xs))
+           (rowSTs, next) = unzip $ pickStop <$> sts
+       in (viewStopRow aStop rowSTs) <> (viewStopRows next)
+
+viewStopRow :: Identifier Stop -> [Maybe StopTime] -> [View action]
+viewStopRow theStopId sts =
+  let _td_ mst = td_ [] [text $ maybe "-" id $ aTime <$> mst]
+      aTime mst = maybe "..." id $
+                  showStopTimeTime <$>
+                  (stopTimeDepartureTime mst <|> stopTimeArrivalTime mst)
+      _th_ = th_ [scope_ "row"] [text $ ms $ show theStopId]
+  in [ tr_
+       [] $
+       [_th_] <> (_td_ <$> sts) ]
+
+viewOptionalFeature :: MisoString -> Maybe Bool -> [View action]
+viewOptionalFeature _ Nothing = []
+viewOptionalFeature icon (Just True) = [fa_ icon]
 viewOptionalFeature icon (Just False) =
-  span_ [ class_ "fa-stack fa-2x" ]
-  [ fa_ (icon <> " fa-stack-1x")
-  , fa_ "ban fa-stack-2x"
+  [ span_ [ class_ "fa-stack fa-2x" ]
+    [ fa_ (icon <> " fa-stack-1x")
+    , fa_ "ban fa-stack-2x"
+    ]
   ]
 
 -- | Get a list of distinct service IDs from a list of trips.
