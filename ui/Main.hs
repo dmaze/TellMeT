@@ -10,12 +10,12 @@ import           Miso.Subscription.History          (uriSub)
 import           TellMeT.Action                     (Action (FetchFeed),
                                                      updatePage)
 import           TellMeT.Components.DirectionPicker (updatePickDirection)
-import           TellMeT.Components.FeedFetcher     (updateFeedFetch)
 import           TellMeT.Components.RoutePage       (updateRoutePage)
 import           TellMeT.Components.ServicePicker   (updatePickService)
 import           TellMeT.Components.URI             (handleURIChange, updateURI)
 import           TellMeT.Model                      (Model, initialModel)
 import           TellMeT.Routes                     (viewModel)
+import           TellMeT.UI.Update                  (updateFeedFetch)
 
 updateModel :: Action -> Model -> Effect Action Model
 updateModel action = fromTransition $ do

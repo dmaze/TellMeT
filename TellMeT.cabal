@@ -21,7 +21,6 @@ library
                     , TellMeT.Components.Chrome
                     , TellMeT.Components.DirectionPicker
                     , TellMeT.Components.FeedFetcher
-                    , TellMeT.Components.Fetcher
                     , TellMeT.Components.Pages
                     , TellMeT.Components.RouteBadge
                     , TellMeT.Components.RouteList
@@ -30,6 +29,8 @@ library
                     , TellMeT.Components.URI
                     , TellMeT.GTFS
                     , TellMeT.Model
+                    , TellMeT.Model.Feed
+                    , TellMeT.Model.Fetcher
                     , TellMeT.Pages
                     , TellMeT.REST
                     , TellMeT.Routes
@@ -94,11 +95,17 @@ executable ui
   else
     ghcjs-options:    -dedupe
     hs-source-dirs:   ui
+    other-modules:    TellMeT.UI.Fetcher
+                    , TellMeT.UI.Update
     build-depends:    TellMeT
                     , base           >= 4.9  && < 5
+                    , data-default   >= 0.7  && < 0.8
+                    , ghcjs-base     >= 0.2  && < 0.3
                     , microlens      >= 0.4  && < 0.5
                     , microlens-mtl  >= 0.1  && < 0.2
                     , miso           >= 0.20 && < 0.21
+                    , mtl            >= 2.2  && < 2.3
+                    , network-uri    >= 2.6  && < 2.7
     default-language: Haskell2010
 
 test-suite test

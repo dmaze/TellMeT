@@ -30,14 +30,14 @@ import           Servant.API                        ((:<|>), (:>), Capture,
 #endif
 
 import           TellMeT.Components.DirectionPicker (PickDirection (ifPickDirection, pickDirection))
-import           TellMeT.Components.FeedFetcher     (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedServices, fetchedTripsForRoute, ifFetchFeed, ifFetchTripsForRoute, ifFetchedAgencies, ifFetchedRoutes, ifFetchedServices, ifFetchedTripsForRoute),
-                                                     FeedFetcher)
-import           TellMeT.Components.Fetcher         (Fetcher)
+import           TellMeT.Components.FeedFetcher     (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedServices, fetchedTripsForRoute, ifFetchFeed, ifFetchTripsForRoute, ifFetchedAgencies, ifFetchedRoutes, ifFetchedServices, ifFetchedTripsForRoute))
 import           TellMeT.Components.Pages           (OnPage (currentPage), PageAction (goToPage, goToPageLink, ifGoToPage, ifNowOnPage, nowOnPage))
 import           TellMeT.Components.ServicePicker   (PickService (ifPickService, pickService))
 import           TellMeT.Components.URI             (URIAction (changeURI, handleURIChange, ifChangeURI, ifHandleURIChange))
 import           TellMeT.GTFS                       (Agency, Route, Service,
                                                      Trip)
+import           TellMeT.Model.Feed                 (FeedFetcher)
+import           TellMeT.Model.Fetcher              (Fetcher)
 import           TellMeT.Pages                      (Page (NoPage, RouteList, RoutePage))
 import           TellMeT.Util                       (Identifier)
 #ifdef __GHCJS__

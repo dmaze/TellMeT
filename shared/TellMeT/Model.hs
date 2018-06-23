@@ -9,14 +9,14 @@ import           Data.Map                           (Map)
 import           Network.URI                        (URI)
 
 import           TellMeT.Components.DirectionPicker (PickedDirection (pickedDirection))
-import           TellMeT.Components.FeedFetcher     (FeedFetcher (fetchAgencies, fetchRoutes, fetchServices, tripsForRouteFetcher),
-                                                     HasFeed (theFeed))
-import           TellMeT.Components.Fetcher         (Fetcher)
 import           TellMeT.Components.Pages           (OnPage (currentPage))
 import           TellMeT.Components.ServicePicker   (PickedService (pickedService))
 import           TellMeT.Components.URI             (SiteURI (siteURI))
 import           TellMeT.GTFS                       (Agency, Feed, Route,
                                                      Service, Trip)
+import           TellMeT.Model.Feed                 (FeedFetcher (fetchAgencies, fetchRoutes, fetchServices, tripsForRouteFetcher),
+                                                     HasFeed (theFeed))
+import           TellMeT.Model.Fetcher              (Fetcher)
 import           TellMeT.Pages                      (Page)
 import           TellMeT.Util                       (Identifier)
 

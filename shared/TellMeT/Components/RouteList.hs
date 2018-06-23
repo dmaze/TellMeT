@@ -15,13 +15,13 @@ import           Miso.Html.Element              (li_, ul_)
 import           Miso.Html.Property             (class_)
 import           Miso.String                    (ms)
 
-import           TellMeT.Components.FeedFetcher (FeedFetcher, HasFeed (theFeed),
-                                                 viewOrFetch)
+import           TellMeT.Components.FeedFetcher (viewOrFetch)
 import           TellMeT.Components.Pages       (PageAction)
 import           TellMeT.Components.RouteBadge  (viewRouteBadge)
 import           TellMeT.GTFS                   (Route, routeDesc,
                                                  routeLongName, routeShortName,
                                                  routeSortOrder, routes)
+import           TellMeT.Model.Feed             (FeedFetcher, HasFeed, theFeed)
 import           TellMeT.Pages                  (Page)
 
 viewOneRoute :: (PageAction Page action) => Route -> View action

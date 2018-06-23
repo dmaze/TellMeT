@@ -30,12 +30,10 @@ import           TellMeT.Components.DirectionPicker (PickDirection,
                                                      PickedDirection,
                                                      pickedDirection,
                                                      viewPickDirection)
-import           TellMeT.Components.FeedFetcher     (FeedFetchAction (fetchTripsForRoute),
-                                                     FeedFetcher (tripsForRouteFetcher),
-                                                     HasFeed (theFeed),
+import           TellMeT.Components.FeedFetcher     (FeedFetchAction,
+                                                     fetchTripsForRoute,
                                                      ifFetchedTripsForRoute,
                                                      viewAFetch)
-import           TellMeT.Components.Fetcher         (Fetcher (Fetched, Unfetched))
 import           TellMeT.Components.Pages           (PageAction)
 import           TellMeT.Components.RouteBadge      (viewRouteBadge)
 import           TellMeT.Components.ServicePicker   (PickService, PickedService,
@@ -53,6 +51,10 @@ import           TellMeT.GTFS                       (Route, Service, Trip,
                                                      tripShortName,
                                                      tripStopTimes,
                                                      tripWheelchairAccessible)
+import           TellMeT.Model.Feed                 (FeedFetcher, HasFeed,
+                                                     theFeed,
+                                                     tripsForRouteFetcher)
+import           TellMeT.Model.Fetcher              (Fetcher (Fetched, Unfetched))
 import           TellMeT.Pages                      (Page)
 import           TellMeT.Util                       (Identifier, MapOf)
 
