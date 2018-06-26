@@ -7,6 +7,8 @@
 module TellMeT.Components.RoutePage where
 
 import           Control.Applicative                ((<|>))
+import           Data.Foldable                      (foldl')
+import           Data.List                          (find)
 import           Data.Map                           (Map)
 import qualified Data.Map                           as Map
 import           Data.Monoid                        ((<>))
@@ -145,16 +147,10 @@ viewRows :: [Trip] -> [View action]
 viewRows trips = viewStopRows (tripStopTimes <$> trips)
 
 viewStopRows :: [[StopTime]] -> [View action]
-viewStopRows sts =
-  if all null sts
-  then []
-  else let aST = head (concat sts)
-           aStop = stopTimeStopId aST
-           pickStop [] = (Nothing, [])
-           pickStop (x:xs) | aStop == stopTimeStopId x = (Just x, xs)
-                           | otherwise = (Nothing, (x:xs))
-           (rowSTs, next) = unzip $ pickStop <$> sts
-       in (viewStopRow aStop rowSTs) <> (viewStopRows next)
+viewStopRows sts = do
+  theStopId <- orderStops sts
+  let thisRow = find (\st -> stopTimeStopId st == theStopId) <$> sts
+  viewStopRow theStopId thisRow
 
 viewStopRow :: Identifier Stop -> [Maybe StopTime] -> [View action]
 viewStopRow theStopId sts =
@@ -166,6 +162,13 @@ viewStopRow theStopId sts =
   in [ tr_
        [] $
        [_th_] <> (_td_ <$> sts) ]
+
+orderStops :: [[StopTime]] -> [Identifier Stop]
+orderStops sts = foldl' loop1 [] sts
+  where loop1 found stList = foldl' loop2 found stList
+        loop2 found st = if stopTimeStopId st `elem` found
+                         then found
+                         else found <> [stopTimeStopId st]
 
 viewOptionalFeature :: MisoString -> Maybe Bool -> [View action]
 viewOptionalFeature _ Nothing = []
