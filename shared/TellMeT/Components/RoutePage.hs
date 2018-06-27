@@ -185,11 +185,10 @@ orderStopIds stopIds = orderStopGraph stopGraph []
   where stopGraph = foldl' (Map.unionWith Set.union) Map.empty $
                     tripToPreds <$> stopIds
         tripToPreds []     = Map.empty
-        tripToPreds (x:xs) = tripToPreds' x xs (Map.singleton x Set.empty)
-        tripToPreds' _ [] m = m
-        tripToPreds' p (x:xs) m =
-          tripToPreds' x xs $
-          Map.insertWith Set.union x (Set.singleton p) m
+        tripToPreds (x:xs) =
+          snd $ foldl' tripToPreds' (x,Map.singleton x Set.empty) xs
+        tripToPreds' (w,m) x =
+          (x,Map.insertWith Set.union x (Set.singleton w) m)
 
 -- | Do a mostly topological sort of the stop graph.
 orderStopGraph :: (Ord a) => Map a (Set a) -> [a] -> [a]
