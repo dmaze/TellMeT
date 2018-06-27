@@ -1,37 +1,57 @@
 -- |Update the model in response to an action.
-module TellMeT.UI.Update where
+module TellMeT.UI.Update (updateModel) where
 
-import           Control.Monad.Writer.Class     (tell)
-import           Data.Default                   (def)
-import           Lens.Micro                     (at, (.~))
-import           Lens.Micro.Mtl                 (use, (.=))
-import           Miso.Types                     (Transition)
-import           TellMeT.Components.FeedFetcher (FeedFetchAction,
-                                                 fetchedAgencies, fetchedRoutes,
-                                                 fetchedServices,
-                                                 fetchedTripsForRoute,
-                                                 ifFetchFeed,
-                                                 ifFetchTripsForRoute,
-                                                 ifFetchedAgencies,
-                                                 ifFetchedRoutes,
-                                                 ifFetchedServices,
-                                                 ifFetchedTripsForRoute)
-import           TellMeT.GTFS                   (Agency, Feed, Route, Service,
-                                                 agencies, routes, services)
-import           TellMeT.Model.Feed             (FeedFetcher, HasFeed,
-                                                 fetchAgencies, fetchRoutes,
-                                                 fetchServices, theFeed,
-                                                 tripsForRouteFetcher)
-import           TellMeT.Model.Fetcher          (Fetcher (Fetched, Fetching))
-import           TellMeT.REST                   (linkAgencies, linkRoutes,
-                                                 linkServices,
-                                                 linkTripsForRoute)
-import           TellMeT.UI.Fetcher             (fetch)
-import           TellMeT.Util                   (addToMap)
+import           Control.Monad.Writer.Class         (tell)
+import           Data.Default                       (def)
+import           Lens.Micro                         (at, (.~))
+import           Lens.Micro.Mtl                     (use, (.=))
+import           Miso.Effect                        (Effect)
+import           Miso.Types                         (Transition, fromTransition)
+import           TellMeT.Action                     (Action, updatePage)
+import           TellMeT.Components.DirectionPicker (updatePickDirection)
+import           TellMeT.Components.FeedFetcher     (fetchedAgencies,
+                                                     fetchedRoutes,
+                                                     fetchedServices,
+                                                     fetchedTripsForRoute,
+                                                     ifFetchFeed,
+                                                     ifFetchTripsForRoute,
+                                                     ifFetchedAgencies,
+                                                     ifFetchedRoutes,
+                                                     ifFetchedServices,
+                                                     ifFetchedTripsForRoute)
+import           TellMeT.Components.RoutePage       (updateRoutePage)
+import           TellMeT.Components.ServicePicker   (updatePickService)
+import           TellMeT.Components.URI             (updateURI)
+import           TellMeT.GTFS                       (Agency, Feed, Route,
+                                                     Service, agencies, routes,
+                                                     services)
+import           TellMeT.Model                      (Model)
+import           TellMeT.Model.Feed                 (FeedFetcher, HasFeed,
+                                                     fetchAgencies, fetchRoutes,
+                                                     fetchServices, theFeed,
+                                                     tripsForRouteFetcher)
+import           TellMeT.Model.Fetcher              (Fetcher (Fetched, Fetching))
+import           TellMeT.REST                       (linkAgencies, linkRoutes,
+                                                     linkServices,
+                                                     linkTripsForRoute)
+import           TellMeT.UI.Fetcher                 (fetch)
+import           TellMeT.Util                       (addToMap)
 
-updateFeedFetch :: (HasFeed model, FeedFetcher model, FeedFetchAction action)
-                => action
-                -> Transition action model ()
+-- | Apply the effects of an action to the model, producing an updated
+-- model and possibly asynchronous actions.
+updateModel :: Action -> Model -> Effect Action Model
+updateModel = fromTransition . doAction
+
+doAction :: Action -> Transition Action Model ()
+doAction action = do
+  updateFeedFetch action
+  updateURI action
+  updatePage action
+  updateRoutePage action
+  updatePickService action
+  updatePickDirection action
+
+updateFeedFetch :: Action -> Transition Action Model ()
 updateFeedFetch a = do
   ifFetchFeed a $ do
     fetchAgencies .= Fetching
