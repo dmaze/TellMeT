@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE DataKinds             #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -12,37 +11,19 @@ import           Data.Default                       (Default (def))
 import           Data.Proxy                         (Proxy (Proxy))
 import           Network.URI                        (URI)
 
-#ifdef __GHCJS__
-import           Control.Monad                      (void)
-import           Data.Either                        (either)
-import qualified JavaScript.Object                  as Object
-import           Lens.Micro.Mtl                     ((.=))
-import           Miso.Html                          (VTree (VTree),
-                                                     View (View, runView))
-import           Miso.Router                        (runRoute)
-import           Miso.Types                         (Transition, scheduleSub)
-import           Servant.API                        ((:<|>) ((:<|>)), (:>),
-                                                     Capture, safeLink)
-#else
 import           Miso.Html                          (View)
 import           Servant.API                        ((:<|>), (:>), Capture,
                                                      safeLink)
-#endif
-
-import           TellMeT.Components.DirectionPicker (PickDirection (ifPickDirection, pickDirection))
-import           TellMeT.Components.FeedFetcher     (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedServices, fetchedTripsForRoute, ifFetchFeed, ifFetchTripsForRoute, ifFetchedAgencies, ifFetchedRoutes, ifFetchedServices, ifFetchedTripsForRoute))
-import           TellMeT.Components.Pages           (OnPage (currentPage), PageAction (goToPage, goToPageLink, ifGoToPage, ifNowOnPage, nowOnPage))
-import           TellMeT.Components.ServicePicker   (PickService (ifPickService, pickService))
-import           TellMeT.Components.URI             (URIAction (changeURI, handleURIChange, ifChangeURI, ifHandleURIChange))
+import           TellMeT.Components.DirectionPicker (PickDirection (pickDirection))
+import           TellMeT.Components.FeedFetcher     (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedServices, fetchedTripsForRoute))
+import           TellMeT.Components.Pages           (PageAction (goToPage, goToPageLink, nowOnPage))
+import           TellMeT.Components.ServicePicker   (PickService (pickService))
+import           TellMeT.Components.URI             (URIAction (changeURI, handleURIChange))
 import           TellMeT.GTFS                       (Agency, Route, Service,
                                                      Trip)
-import           TellMeT.Model.Feed                 (FeedFetcher)
 import           TellMeT.Model.Fetcher              (Fetcher)
 import           TellMeT.Pages                      (Page (NoPage, RouteList, RoutePage))
 import           TellMeT.Util                       (Identifier)
-#ifdef __GHCJS__
-import           TellMeT.Components.RoutePage       (onRoutePage)
-#endif
 
 -- | The concrete type of an action.
 --
@@ -86,50 +67,26 @@ instance Default Action where
 
 instance URIAction Action where
   changeURI = ChangeURI
-  ifChangeURI (ChangeURI uri) f = f uri
-  ifChangeURI _ _               = return ()
   handleURIChange = HandleURIChange
-  ifHandleURIChange (HandleURIChange uri) f = f uri
-  ifHandleURIChange _ _                     = return ()
 
 instance FeedFetchAction Action where
   fetchFeed = FetchFeed
-  ifFetchFeed FetchFeed a = a
-  ifFetchFeed _ _         = return ()
   fetchedAgencies = FetchedAgencies
-  ifFetchedAgencies (FetchedAgencies ff) a = a ff
-  ifFetchedAgencies _ _                    = return ()
   fetchedRoutes = FetchedRoutes
-  ifFetchedRoutes (FetchedRoutes ff) a = a ff
-  ifFetchedRoutes _ _                  = return ()
   fetchedServices = FetchedServices
-  ifFetchedServices (FetchedServices ff) a = a ff
-  ifFetchedServices _ _                    = return ()
   fetchTripsForRoute = FetchTripsForRoute
-  ifFetchTripsForRoute (FetchTripsForRoute r) f = f r
-  ifFetchTripsForRoute _ _                      = return ()
   fetchedTripsForRoute = FetchedTripsForRoute
-  ifFetchedTripsForRoute (FetchedTripsForRoute r t) f = f r t
-  ifFetchedTripsForRoute _ _                          = return ()
 
 instance PageAction Page Action where
   goToPage = GoToPage
   goToPageLink p = (GoToPage p, pageLink p)
-  ifGoToPage (GoToPage p) f = f p
-  ifGoToPage _ _            = return ()
   nowOnPage = NowOnPage
-  ifNowOnPage (NowOnPage p) f = f p
-  ifNowOnPage _ _             = return ()
 
 instance PickService Action where
   pickService = PickService
-  ifPickService (PickService s) f = f s
-  ifPickService _ _               = return ()
 
 instance PickDirection Action where
   pickDirection = PickDirection
-  ifPickDirection (PickDirection d) f = f d
-  ifPickDirection _ _                 = return ()
 
 -- The page-link wiring winds up here.  We have the unfortunate
 -- dependency chain that the Servant types depend on the concrete
@@ -160,46 +117,3 @@ type RoutePageRoute = "route"
 
 -- | All Servant routes for viewing application pages.
 type ViewRoutes = RouteListRoute :<|> RoutePageRoute
-
-#ifdef __GHCJS__
--- We need to decode the page URL matching a Servant route.
--- This looks mildly tricky and kind of annoying.  There are at least
--- two canned implementations out there already: one in a standalone
--- servant-matcher package (which requires Servant 0.13) and the one
--- in Miso.Router.
---
--- Miso.Router, though, basically only works when the routes end
--- in (View action) and you're matching it against an object with
--- terminals of type (model -> View action).  That means we need
--- this fake view:
-
--- | Artificial view that dispatches the action given.
-dispatch :: action -> View action
-dispatch action = View $ \sink -> sink action >> VTree <$> Object.create
-
--- | Create an artificial view that fires a now-on-page action
--- for a specific page.
-dispatchOnPage :: (PageAction Page action) => Page -> model -> View action
-dispatchOnPage page _ = dispatch $ nowOnPage page
-
--- | Forward requests to go to specific pages, and observe when we are
--- on a specific page.
-updatePage :: (OnPage Page model, FeedFetcher model,
-              FeedFetchAction action, PageAction Page action, URIAction action)
-           => action
-           -> Transition action model ()
-updatePage action = do
-  ifGoToPage action $ \page ->
-    scheduleSub $ \sink -> sink $ changeURI $ pageLink page
-  ifHandleURIChange action $ \uri ->
-    let pageTree = dispatchOnPage RouteList :<|>
-                   \p -> dispatchOnPage (RoutePage p)
-        view = either (dispatchOnPage NoPage) id $
-               runRoute (Proxy @ViewRoutes) pageTree id uri
-    in scheduleSub $ void . runView view
-  ifNowOnPage action $ \page -> do
-    currentPage .= page
-    case page of
-      RoutePage routeId -> onRoutePage routeId
-      _                 -> return ()
-#endif

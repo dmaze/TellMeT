@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                   #-}
 {-# LANGUAGE FlexibleContexts      #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE OverloadedStrings     #-}
@@ -22,22 +21,12 @@ import           Miso.Html.Element                  (div_, form_, h1_, span_,
 import           Miso.Html.Property                 (class_, scope_)
 import           Miso.String                        (MisoString, ms)
 
-#ifdef __GHCJS__
-import           Control.Monad.Writer.Class         (tell)
-import           Lens.Micro                         (each, (^?))
-import           Lens.Micro.Mtl                     (use, (<%=))
-import           Miso.Types                         (Transition)
-#endif
-
 import           TellMeT.Bootstrap                  (alert_, fa_)
 import           TellMeT.Components.DirectionPicker (PickDirection,
                                                      PickedDirection,
                                                      pickedDirection,
                                                      viewPickDirection)
-import           TellMeT.Components.FeedFetcher     (FeedFetchAction,
-                                                     fetchTripsForRoute,
-                                                     ifFetchedTripsForRoute,
-                                                     viewAFetch)
+import           TellMeT.Components.FeedFetcher     (viewAFetch)
 import           TellMeT.Components.Pages           (PageAction)
 import           TellMeT.Components.RouteBadge      (viewRouteBadge,
                                                      viewRouteType)
@@ -299,57 +288,3 @@ filterByDirection dir = filter ((== dir) . tripDirectionId)
 visibleTrips :: Maybe (Identifier Service) -> Maybe Int -> [Trip] -> [Trip]
 visibleTrips aService aDirection = filterByDirection aDirection .
                                    filterByService aService
-
-#ifdef __GHCJS__
-onRoutePage :: (FeedFetcher model, FeedFetchAction action)
-            => Identifier Route
-            -> Transition action model ()
-onRoutePage routeId = do
-  fetcher <- use $ tripsForRouteFetcher . at routeId
-  case maybe Unfetched id fetcher of
-    Unfetched -> tell [ \d -> d $ fetchTripsForRoute routeId ]
-    _         -> return ()
-
-updateRoutePage :: (PickedService model, PickedDirection model,
-                    FeedFetchAction action)
-                => action -> Transition action model ()
-updateRoutePage a = do
-  ifFetchedTripsForRoute a $ \_ fetch ->
-    case fetch of
-      Fetched trips -> do aService <- updatePickedService trips
-                          _ <- updatePickedDirection trips aService
-                          return ()
-      _ -> return ()
-
--- | Given a list of newly visible trips, update the chosen
--- service if necessary.
-updatePickedService :: (PickedService model)
-                    => [Trip]
-                    -> Transition action model (Maybe (Identifier Service))
-updatePickedService trips =
-  let someServices = visibleServices trips
-      anyService = someServices ^? each
-      pickValidService Nothing = anyService
-      pickValidService (Just sid) =
-        if sid `elem` someServices
-        then Just sid
-        else anyService
-  in pickedService <%= pickValidService
-
--- | Given a list of newly visible trips and a chosen service,
--- update the chosen direction if necessary.
-updatePickedDirection :: (PickedDirection model)
-                      => [Trip]
-                      -> Maybe (Identifier Service)
-                      -> Transition action model (Maybe Int)
-updatePickedDirection trips aService =
-  let trips' = filterByService aService trips
-      directions = foldMap (Set.singleton . tripDirectionId) trips'
-      pickValidDirection dir =
-        if dir `Set.member` directions
-        then dir
-        else if Set.null directions
-             then Nothing
-             else Set.findMin directions
-  in pickedDirection <%= pickValidDirection
-#endif

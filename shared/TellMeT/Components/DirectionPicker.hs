@@ -1,20 +1,14 @@
-{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module TellMeT.Components.DirectionPicker where
 
 import           Lens.Micro         (non, (^.))
-import           Lens.Micro.Mtl     (assign)
 import           Miso.Html          (View, text)
 import           Miso.Html.Element  (label_, option_, select_)
 import           Miso.Html.Event    (onChange)
 import           Miso.Html.Property (for_, id_, selected_, value_)
 import           Miso.String        (MisoString, fromMisoString, ms)
 import           Text.Read          (readMaybe)
-
-#ifdef __GHCJS__
-import           Miso.Types         (Transition)
-#endif
 
 -- | Models that have a single direction chosen.  Trips, in
 -- particular, have directions.  GTFS specifies that the "direction"
@@ -32,12 +26,6 @@ class PickedDirection model where
 class PickDirection action where
   -- | Create an action to pick a direction.
   pickDirection :: Maybe Int -> action
-  -- | Run a monadic action if the current action is a pick-direction
-  -- action.
-  ifPickDirection :: (Monad m)
-                  => action
-                  -> (Maybe Int -> m ())
-                  -> m ()
 
 -- | Displays the direction picker; that is, a label and a select
 -- control.  The caller is responsible for wrapping this in an input
@@ -59,10 +47,3 @@ viewPickDirection selected directions =
           , selected_ (selected == dir)
           ]
           [ text desc ]
-
-#ifdef __GHCJS__
-updatePickDirection :: (PickedDirection model, PickDirection action)
-                    => action -> Transition action model ()
-updatePickDirection a =
-  ifPickDirection a $ assign pickedDirection
-#endif

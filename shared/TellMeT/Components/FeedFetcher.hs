@@ -16,26 +16,13 @@ import           TellMeT.Util          (Identifier)
 
 class FeedFetchAction action where
   fetchFeed :: action
-  ifFetchFeed :: (Monad m) => action -> m () -> m ()
   fetchedAgencies :: Fetcher [Agency] -> action
-  ifFetchedAgencies :: (Monad m)
-                    => action -> (Fetcher [Agency] -> m ()) -> m ()
   fetchedRoutes :: Fetcher [Route] -> action
-  ifFetchedRoutes :: (Monad m)
-                  => action -> (Fetcher [Route] -> m ()) -> m ()
   fetchedServices :: Fetcher [Service] -> action
-  ifFetchedServices :: (Monad m)
-                    => action -> (Fetcher [Service] -> m ()) -> m ()
   fetchTripsForRoute :: Identifier Route -> action
-  ifFetchTripsForRoute :: (Monad m)
-                       => action -> (Identifier Route -> m ()) -> m ()
   fetchedTripsForRoute :: Identifier Route
                        -> Fetcher [Trip]
                        -> action
-  ifFetchedTripsForRoute :: (Monad m)
-                         => action
-                         -> (Identifier Route -> Fetcher [Trip] -> m ())
-                         -> m ()
 
 -- | If we have the base feed already, run some other view function;
 -- otherwise ignore the view function and fetch the feed.

@@ -1,20 +1,14 @@
-{-# LANGUAGE CPP               #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module TellMeT.Components.ServicePicker where
 
 import           Data.Monoid        ((<>))
 import           Data.Time.Calendar (showGregorian)
-import           Lens.Micro.Mtl     (assign)
 import           Miso.Html          (View, text)
 import           Miso.Html.Element  (label_, option_, select_)
 import           Miso.Html.Event    (onChange)
 import           Miso.Html.Property (for_, id_, selected_, value_)
 import           Miso.String        (MisoString, fromMisoString, ms)
-
-#ifdef __GHCJS__
-import           Miso.Types         (Transition)
-#endif
 
 import           TellMeT.GTFS       (Calendar, CalendarDate,
                                      CalendarDay (CalendarDay),
@@ -41,12 +35,6 @@ class PickedService model where
 class PickService action where
   -- | Create an action to pick a single service.
   pickService :: Maybe (Identifier Service) -> action
-  -- | Run a monadic action if the current action is a pick-service
-  -- action.
-  ifPickService :: (Monad m)
-                => action
-                -> (Maybe (Identifier Service) -> m ())
-                -> m ()
 
 -- | Displays the service picker; that is, a label and a select
 -- control.  The caller is responsible for wrapping this in an input
@@ -101,10 +89,3 @@ calendarDateSummary cd =
 
 showDay :: CalendarDay -> MisoString
 showDay (CalendarDay day) = ms $ showGregorian day
-
-#ifdef __GHCJS__
-updatePickService :: (PickedService model, PickService action)
-                  => action -> Transition action model ()
-updatePickService a =
-  ifPickService a $ assign pickedService
-#endif

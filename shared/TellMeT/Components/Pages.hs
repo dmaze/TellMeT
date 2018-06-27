@@ -1,6 +1,6 @@
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
 
 -- | URIs and Servant handlers for pages in the application.
 --
@@ -8,15 +8,15 @@
 -- machinery and application-specific pages/routes.
 module TellMeT.Components.Pages where
 
-import Data.Monoid ((<>))
-import Miso.Event.Decoder (emptyDecoder)
-import Miso.Html (Attribute, View)
-import Miso.Html.Element (a_)
-import Miso.Html.Event (Options (preventDefault, stopPropagation),
-                        defaultOptions, onWithOptions)
-import Miso.Html.Property (href_)
-import Miso.String (ms)
-import Network.URI (URI)
+import           Data.Monoid        ((<>))
+import           Miso.Event.Decoder (emptyDecoder)
+import           Miso.Html          (Attribute, View)
+import           Miso.Html.Element  (a_)
+import           Miso.Html.Event    (Options (preventDefault, stopPropagation),
+                                     defaultOptions, onWithOptions)
+import           Miso.Html.Property (href_)
+import           Miso.String        (ms)
+import           Network.URI        (URI)
 
 -- | Models that know what page we're on.
 class OnPage page model where
@@ -42,14 +42,8 @@ class PageAction page action | action -> page where
   -- target of a link that goes there.
   goToPageLink :: page -> (action, URI)
 
-  -- | Invoke a monadic action if an action is go-to-page type.
-  ifGoToPage :: (Monad m) => action -> (page -> m ()) -> m ()
-
   -- | Create an action when we have arrived on a page.
   nowOnPage :: page -> action
-
-  -- | Invoke a monadic action if an action is now-on-page type.
-  ifNowOnPage :: (Monad m) => action -> (page -> m ()) -> m ()
 
 -- | Generate an HTML link to a page.
 a_page_ :: (PageAction page action)
