@@ -23,15 +23,12 @@ import           Miso.String                        (MisoString, ms)
 
 import           TellMeT.Bootstrap                  (alert_, fa_)
 import           TellMeT.Components.DirectionPicker (PickDirection,
-                                                     PickedDirection,
-                                                     pickedDirection,
                                                      viewPickDirection)
 import           TellMeT.Components.FeedFetcher     (viewAFetch)
 import           TellMeT.Components.Pages           (PageAction)
 import           TellMeT.Components.RouteBadge      (viewRouteBadge,
                                                      viewRouteType)
-import           TellMeT.Components.ServicePicker   (PickService, PickedService,
-                                                     pickedService,
+import           TellMeT.Components.ServicePicker   (PickService,
                                                      viewPickService)
 import           TellMeT.GTFS                       (Route, RouteType, Service,
                                                      Stop, StopTime, Trip,
@@ -48,8 +45,11 @@ import           TellMeT.GTFS                       (Route, RouteType, Service,
                                                      tripShortName,
                                                      tripStopTimes,
                                                      tripWheelchairAccessible)
-import           TellMeT.Model.Feed                 (FeedFetcher, HasFeed,
-                                                     theFeed,
+import           TellMeT.Model.Class                (FeedFetcher, HasFeed,
+                                                     PickedDirection,
+                                                     PickedService,
+                                                     pickedDirection,
+                                                     pickedService, theFeed,
                                                      tripsForRouteFetcher)
 import           TellMeT.Model.Fetcher              (Fetcher (Fetched, Unfetched))
 import           TellMeT.Pages                      (Page)

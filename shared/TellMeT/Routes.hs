@@ -13,10 +13,11 @@ import           Network.URI                  (URI)
 
 import           TellMeT.Action               (Action)
 import           TellMeT.Components.Chrome    (viewChrome)
-import           TellMeT.Components.Pages     (currentPage, goToPageLink)
+import           TellMeT.Components.Pages     (goToPageLink)
 import           TellMeT.Components.RouteList (viewRouteList)
 import           TellMeT.Components.RoutePage (viewRoutePage)
 import           TellMeT.Model                (Model)
+import           TellMeT.Model.Class          (currentPage)
 import           TellMeT.Pages                (Page (NoPage, RouteList, RoutePage))
 
 viewModel :: Model -> View Action

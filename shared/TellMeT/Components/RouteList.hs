@@ -20,7 +20,7 @@ import           TellMeT.Components.RouteBadge  (viewRouteBadge)
 import           TellMeT.GTFS                   (Route, routeDesc,
                                                  routeLongName, routeShortName,
                                                  routeSortOrder, routes)
-import           TellMeT.Model.Feed             (FeedFetcher, HasFeed, theFeed)
+import           TellMeT.Model.Class            (FeedFetcher, HasFeed, theFeed)
 import           TellMeT.Pages                  (Page)
 
 viewOneRoute :: (PageAction Page action) => Route -> View action

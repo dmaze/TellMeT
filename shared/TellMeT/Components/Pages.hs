@@ -18,11 +18,6 @@ import           Miso.Html.Property (href_)
 import           Miso.String        (ms)
 import           Network.URI        (URI)
 
--- | Models that know what page we're on.
-class OnPage page model where
-  -- | Lens accessing the current page.
-  currentPage :: (Functor t) => (page -> t page) -> model -> t model
-
 -- | Actions that can act on the current page.
 --
 -- Components that provide links between pages should fire 'goToPage'

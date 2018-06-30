@@ -10,18 +10,6 @@ import           Miso.Html.Property (for_, id_, selected_, value_)
 import           Miso.String        (MisoString, fromMisoString, ms)
 import           Text.Read          (readMaybe)
 
--- | Models that have a single direction chosen.  Trips, in
--- particular, have directions.  GTFS specifies that the "direction"
--- column is optional but that if it is present it should be 0 or 1,
--- so hopefully this is consistent across routes (and if not then
--- Nothing is a sensible choise probably).
-class PickedDirection model where
-  -- | Lens on the model to the currently-picked direction.
-  pickedDirection :: (Functor t)
-                => (Maybe Int -> t (Maybe Int))
-                -> model
-                -> t model
-
 -- | Actions that can choose a direction.
 class PickDirection action where
   -- | Create an action to pick a direction.

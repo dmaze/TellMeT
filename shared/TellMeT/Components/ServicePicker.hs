@@ -22,15 +22,6 @@ import           TellMeT.GTFS       (Calendar, CalendarDate,
                                      calendarTuesday, calendarWednesday,
                                      serviceCalendar, serviceDates, serviceId)
 
--- | Models that have a single service chosen.
-class PickedService model where
-  -- | Lens on the model to the currently-picked service.
-  pickedService :: (Functor t)
-                => (Maybe (Identifier Service) ->
-                    t (Maybe( Identifier Service)))
-                -> model
-                -> t model
-
 -- | Actions that can reflect a chosen service.
 class PickService action where
   -- | Create an action to pick a single service.

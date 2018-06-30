@@ -29,8 +29,9 @@ library
                     , TellMeT.Components.URI
                     , TellMeT.GTFS
                     , TellMeT.Model
-                    , TellMeT.Model.Feed
+                    , TellMeT.Model.Class
                     , TellMeT.Model.Fetcher
+                    , TellMeT.Model.Selectors
                     , TellMeT.Pages
                     , TellMeT.REST
                     , TellMeT.Routes

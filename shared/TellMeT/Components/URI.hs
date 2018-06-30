@@ -1,13 +1,7 @@
 -- | Handle the browser URI.
 module TellMeT.Components.URI where
 
-import           Lens.Micro  (Lens')
 import           Network.URI (URI)
-
--- | Models that are aware of the current site URI.
-class SiteURI model where
-  -- | Access the current site URI.
-  siteURI :: Lens' model URI
 
 -- | Actions that can affect the current site URI.
 class URIAction action where

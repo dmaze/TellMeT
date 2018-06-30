@@ -3,45 +3,40 @@
 -- |Update the model in response to an action.
 module TellMeT.UI.Update (updateModel) where
 
-import           Control.Monad                      (void)
-import           Control.Monad.State.Class          (get)
-import           Control.Monad.Writer.Class         (tell)
-import           Data.Default                       (def)
-import           Data.Proxy                         (Proxy (Proxy))
-import qualified Data.Set                           as Set
-import qualified JavaScript.Object                  as Object
-import           Lens.Micro                         (at, each, (.~), (^?))
-import           Lens.Micro.Mtl                     (use, view, (.=), (<%=))
-import           Miso.Effect                        (Effect)
-import           Miso.Html                          (VTree (VTree),
-                                                     View (View, runView))
-import           Miso.Router                        (runRoute)
-import           Miso.Subscription.History          (pushURI)
-import           Miso.Types                         (Transition, fromTransition)
-import           Servant.API                        ((:<|>) ((:<|>)))
-import           TellMeT.Action                     (Action (..), ViewRoutes,
-                                                     pageLink)
-import           TellMeT.Components.DirectionPicker (pickedDirection)
-import           TellMeT.Components.Pages           (currentPage)
-import           TellMeT.Components.RoutePage       (filterByService,
-                                                     visibleServices)
-import           TellMeT.Components.ServicePicker   (pickedService)
-import           TellMeT.Components.URI             (siteURI)
-import           TellMeT.GTFS                       (Agency, Feed, Route,
-                                                     Service, Trip, agencies,
-                                                     routes, services,
-                                                     tripDirectionId)
-import           TellMeT.Model                      (Model)
-import           TellMeT.Model.Feed                 (fetchAgencies, fetchRoutes,
-                                                     fetchServices, theFeed,
-                                                     tripsForRouteFetcher)
-import           TellMeT.Model.Fetcher              (Fetcher (Fetched, Fetching, Unfetched))
-import           TellMeT.Pages                      (Page (NoPage, RouteList, RoutePage))
-import           TellMeT.REST                       (linkAgencies, linkRoutes,
-                                                     linkServices,
-                                                     linkTripsForRoute)
-import           TellMeT.UI.Fetcher                 (fetch)
-import           TellMeT.Util                       (Identifier, addToMap)
+import           Control.Monad                (void)
+import           Control.Monad.State.Class    (get)
+import           Control.Monad.Writer.Class   (tell)
+import           Data.Default                 (def)
+import           Data.Proxy                   (Proxy (Proxy))
+import qualified Data.Set                     as Set
+import qualified JavaScript.Object            as Object
+import           Lens.Micro                   (at, each, (.~), (^?))
+import           Lens.Micro.Mtl               (use, view, (.=), (<%=))
+import           Miso.Effect                  (Effect)
+import           Miso.Html                    (VTree (VTree),
+                                               View (View, runView))
+import           Miso.Router                  (runRoute)
+import           Miso.Subscription.History    (pushURI)
+import           Miso.Types                   (Transition, fromTransition)
+import           Servant.API                  ((:<|>) ((:<|>)))
+import           TellMeT.Action               (Action (..), ViewRoutes,
+                                               pageLink)
+import           TellMeT.Components.RoutePage (filterByService, visibleServices)
+import           TellMeT.GTFS                 (Agency, Feed, Route, Service,
+                                               Trip, agencies, routes, services,
+                                               tripDirectionId)
+import           TellMeT.Model                (Model)
+import           TellMeT.Model.Class          (currentPage, fetchAgencies,
+                                               fetchRoutes, fetchServices,
+                                               pickedDirection, pickedService,
+                                               siteURI, theFeed,
+                                               tripsForRouteFetcher)
+import           TellMeT.Model.Fetcher        (Fetcher (Fetched, Fetching, Unfetched))
+import           TellMeT.Pages                (Page (NoPage, RouteList, RoutePage))
+import           TellMeT.REST                 (linkAgencies, linkRoutes,
+                                               linkServices, linkTripsForRoute)
+import           TellMeT.UI.Fetcher           (fetch)
+import           TellMeT.Util                 (Identifier, addToMap)
 
 -- | Apply the effects of an action to the model, producing an updated
 -- model and possibly asynchronous actions.
