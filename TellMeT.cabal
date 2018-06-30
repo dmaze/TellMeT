@@ -17,6 +17,7 @@ library
   ghcjs-options:      -dedupe
   hs-source-dirs:     shared
   exposed-modules:    TellMeT.Action
+                    , TellMeT.Action.Class
                     , TellMeT.Bootstrap
                     , TellMeT.Components.Chrome
                     , TellMeT.Components.DirectionPicker
@@ -26,7 +27,6 @@ library
                     , TellMeT.Components.RouteList
                     , TellMeT.Components.RoutePage
                     , TellMeT.Components.ServicePicker
-                    , TellMeT.Components.URI
                     , TellMeT.GTFS
                     , TellMeT.Model
                     , TellMeT.Model.Class

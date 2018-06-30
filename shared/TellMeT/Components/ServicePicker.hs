@@ -2,30 +2,27 @@
 
 module TellMeT.Components.ServicePicker where
 
-import           Data.Monoid        ((<>))
-import           Data.Time.Calendar (showGregorian)
-import           Miso.Html          (View, text)
-import           Miso.Html.Element  (label_, option_, select_)
-import           Miso.Html.Event    (onChange)
-import           Miso.Html.Property (for_, id_, selected_, value_)
-import           Miso.String        (MisoString, fromMisoString, ms)
+import           Data.Monoid          ((<>))
+import           Data.Time.Calendar   (showGregorian)
+import           Miso.Html            (View, text)
+import           Miso.Html.Element    (label_, option_, select_)
+import           Miso.Html.Event      (onChange)
+import           Miso.Html.Property   (for_, id_, selected_, value_)
+import           Miso.String          (MisoString, fromMisoString, ms)
 
-import           TellMeT.GTFS       (Calendar, CalendarDate,
-                                     CalendarDay (CalendarDay),
-                                     ExceptionType (Added, NoException, Removed),
-                                     Identifier (ServiceIdentifier), Service,
-                                     calendarDateDate,
-                                     calendarDateExceptionType, calendarEndDate,
-                                     calendarFriday, calendarMonday,
-                                     calendarSaturday, calendarStartDate,
-                                     calendarSunday, calendarThursday,
-                                     calendarTuesday, calendarWednesday,
-                                     serviceCalendar, serviceDates, serviceId)
-
--- | Actions that can reflect a chosen service.
-class PickService action where
-  -- | Create an action to pick a single service.
-  pickService :: Maybe (Identifier Service) -> action
+import           TellMeT.Action.Class (PickService, pickService)
+import           TellMeT.GTFS         (Calendar, CalendarDate,
+                                       CalendarDay (CalendarDay),
+                                       ExceptionType (Added, NoException, Removed),
+                                       Identifier (ServiceIdentifier), Service,
+                                       calendarDateDate,
+                                       calendarDateExceptionType,
+                                       calendarEndDate, calendarFriday,
+                                       calendarMonday, calendarSaturday,
+                                       calendarStartDate, calendarSunday,
+                                       calendarThursday, calendarTuesday,
+                                       calendarWednesday, serviceCalendar,
+                                       serviceDates, serviceId)
 
 -- | Displays the service picker; that is, a label and a select
 -- control.  The caller is responsible for wrapping this in an input

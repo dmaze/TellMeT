@@ -2,18 +2,15 @@
 
 module TellMeT.Components.DirectionPicker where
 
-import           Lens.Micro         (non, (^.))
-import           Miso.Html          (View, text)
-import           Miso.Html.Element  (label_, option_, select_)
-import           Miso.Html.Event    (onChange)
-import           Miso.Html.Property (for_, id_, selected_, value_)
-import           Miso.String        (MisoString, fromMisoString, ms)
-import           Text.Read          (readMaybe)
+import           Lens.Micro           (non, (^.))
+import           Miso.Html            (View, text)
+import           Miso.Html.Element    (label_, option_, select_)
+import           Miso.Html.Event      (onChange)
+import           Miso.Html.Property   (for_, id_, selected_, value_)
+import           Miso.String          (MisoString, fromMisoString, ms)
+import           Text.Read            (readMaybe)
 
--- | Actions that can choose a direction.
-class PickDirection action where
-  -- | Create an action to pick a direction.
-  pickDirection :: Maybe Int -> action
+import           TellMeT.Action.Class (PickDirection, pickDirection)
 
 -- | Displays the direction picker; that is, a label and a select
 -- control.  The caller is responsible for wrapping this in an input

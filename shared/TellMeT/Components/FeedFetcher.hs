@@ -8,22 +8,10 @@ import           Miso.Html               (View, div_, p_, text)
 import           Miso.String             (MisoString, ms)
 
 import           TellMeT.Bootstrap       (fa_)
-import           TellMeT.GTFS            (Agency, Route, Service, Trip)
 import           TellMeT.Model.Class     (FeedFetcher, fetchAgencies,
                                           fetchRoutes, fetchServices)
 import           TellMeT.Model.Fetcher   (Fetcher (FetchFailed, Fetched, Fetching, Unfetched))
 import           TellMeT.Model.Selectors (haveFeed)
-import           TellMeT.Util            (Identifier)
-
-class FeedFetchAction action where
-  fetchFeed :: action
-  fetchedAgencies :: Fetcher [Agency] -> action
-  fetchedRoutes :: Fetcher [Route] -> action
-  fetchedServices :: Fetcher [Service] -> action
-  fetchTripsForRoute :: Identifier Route -> action
-  fetchedTripsForRoute :: Identifier Route
-                       -> Fetcher [Trip]
-                       -> action
 
 -- | If we have the base feed already, run some other view function;
 -- otherwise ignore the view function and fetch the feed.

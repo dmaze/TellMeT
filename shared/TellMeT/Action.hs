@@ -7,23 +7,21 @@
 -- | Core action type.
 module TellMeT.Action where
 
-import           Data.Default                       (Default (def))
-import           Data.Proxy                         (Proxy (Proxy))
-import           Network.URI                        (URI)
+import           Data.Default          (Default (def))
+import           Data.Proxy            (Proxy (Proxy))
+import           Network.URI           (URI)
 
-import           Miso.Html                          (View)
-import           Servant.API                        ((:<|>), (:>), Capture,
-                                                     safeLink)
-import           TellMeT.Components.DirectionPicker (PickDirection (pickDirection))
-import           TellMeT.Components.FeedFetcher     (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedServices, fetchedTripsForRoute))
-import           TellMeT.Components.Pages           (PageAction (goToPage, goToPageLink, nowOnPage))
-import           TellMeT.Components.ServicePicker   (PickService (pickService))
-import           TellMeT.Components.URI             (URIAction (changeURI, handleURIChange))
-import           TellMeT.GTFS                       (Agency, Route, Service,
-                                                     Trip)
-import           TellMeT.Model.Fetcher              (Fetcher)
-import           TellMeT.Pages                      (Page (NoPage, RouteList, RoutePage))
-import           TellMeT.Util                       (Identifier)
+import           Miso.Html             (View)
+import           Servant.API           ((:<|>), (:>), Capture, safeLink)
+import           TellMeT.Action.Class  (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedServices, fetchedTripsForRoute),
+                                        PageAction (goToPage, goToPageLink),
+                                        PickDirection (pickDirection),
+                                        PickService (pickService),
+                                        URIAction (changeURI, handleURIChange))
+import           TellMeT.GTFS          (Agency, Route, Service, Trip)
+import           TellMeT.Model.Fetcher (Fetcher)
+import           TellMeT.Pages         (Page (NoPage, RouteList, RoutePage))
+import           TellMeT.Util          (Identifier)
 
 -- | The concrete type of an action.
 --
@@ -80,7 +78,6 @@ instance FeedFetchAction Action where
 instance PageAction Page Action where
   goToPage = GoToPage
   goToPageLink p = (GoToPage p, pageLink p)
-  nowOnPage = NowOnPage
 
 instance PickService Action where
   pickService = PickService

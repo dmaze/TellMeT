@@ -25,7 +25,6 @@ import           Lucid                                (ToHtml (toHtml, toHtmlRaw
 import           Lucid.Base                           (makeAttribute)
 import           Miso                                 (ToServerRoutes, View)
 import           Network.HTTP.Types                   (status404)
-import           Network.URI                          (URI)
 import           Network.Wai                          (Application, responseLBS)
 import           Network.Wai.Handler.Warp             (run)
 import           Network.Wai.Middleware.RequestLogger (logStdout)
@@ -40,8 +39,8 @@ import           System.Console.GetOpt                (ArgDescr (NoArg, ReqArg),
 import           System.Environment                   (getArgs)
 
 import           Paths_TellMeT                        (getDataDir)
-import           TellMeT.Action                       (Action, ViewRoutes)
-import           TellMeT.Components.Pages             (goToPageLink)
+import           TellMeT.Action                       (Action, ViewRoutes,
+                                                       pageLink)
 import           TellMeT.GTFS                         (Feed, Route, agencies,
                                                        routes, services, stops,
                                                        tripRouteId, trips)
@@ -149,8 +148,7 @@ routePageServer :: Identifier Route -> Handler (HtmlPage (View Action))
 routePageServer = pageServer . RoutePage
 
 pageServer :: Page -> Handler (HtmlPage (View Action))
-pageServer page = pure $ HtmlPage $ viewModel $ initialModel uri
-  where (_, uri) = goToPageLink page :: (Action, URI)
+pageServer = pure . HtmlPage . viewModel . initialModel . pageLink
 
 page404 :: Application
 page404 = \_ respond -> respond $ responseLBS

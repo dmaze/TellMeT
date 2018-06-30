@@ -21,15 +21,14 @@ import           Miso.Html.Element                  (div_, form_, h1_, span_,
 import           Miso.Html.Property                 (class_, scope_)
 import           Miso.String                        (MisoString, ms)
 
+import           TellMeT.Action.Class               (PageAction, PickDirection,
+                                                     PickService)
 import           TellMeT.Bootstrap                  (alert_, fa_)
-import           TellMeT.Components.DirectionPicker (PickDirection,
-                                                     viewPickDirection)
+import           TellMeT.Components.DirectionPicker (viewPickDirection)
 import           TellMeT.Components.FeedFetcher     (viewAFetch)
-import           TellMeT.Components.Pages           (PageAction)
 import           TellMeT.Components.RouteBadge      (viewRouteBadge,
                                                      viewRouteType)
-import           TellMeT.Components.ServicePicker   (PickService,
-                                                     viewPickService)
+import           TellMeT.Components.ServicePicker   (viewPickService)
 import           TellMeT.GTFS                       (Route, RouteType, Service,
                                                      Stop, StopTime, Trip,
                                                      routeType, routes,

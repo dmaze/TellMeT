@@ -12,8 +12,9 @@ import           Miso.Html                (Attribute, View, class_, style_,
 import           Miso.Html.Element        (span_)
 import           Miso.String              (ms)
 
+import           TellMeT.Action.Class     (PageAction)
 import           TellMeT.Bootstrap        (fa_)
-import           TellMeT.Components.Pages (PageAction, a_page_)
+import           TellMeT.Components.Pages (a_page_)
 import           TellMeT.GTFS             (Route, RouteType (Bus, CableCar, Ferry, Funicular, Gondola, LightRail, Rail, Subway),
                                            routeColor, routeId, routeLongName,
                                            routeShortName, routeTextColor,
