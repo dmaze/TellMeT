@@ -15,15 +15,15 @@ import           Data.Set                           (Set)
 import qualified Data.Set                           as Set
 import           Lens.Micro                         (at, ix, non, (^.), (^..))
 import           Miso.Html                          (View, text)
-import           Miso.Html.Element                  (div_, form_, h1_, span_,
-                                                     table_, tbody_, td_, th_,
-                                                     thead_, tr_)
+import           Miso.Html.Element                  (div_, form_, h1_, table_,
+                                                     tbody_, td_, th_, thead_,
+                                                     tr_)
 import           Miso.Html.Property                 (class_, scope_)
 import           Miso.String                        (MisoString, ms)
 
 import           TellMeT.Action.Class               (PageAction, PickDirection,
                                                      PickService)
-import           TellMeT.Bootstrap                  (alert_, fa_)
+import           TellMeT.Bootstrap                  (alert_, fa_, optional_fa_)
 import           TellMeT.Components.DirectionPicker (viewPickDirection)
 import           TellMeT.Components.FeedFetcher     (viewAFetch)
 import           TellMeT.Components.RouteBadge      (viewRouteBadge,
@@ -52,7 +52,8 @@ import           TellMeT.Model.Class                (FeedFetcher, HasFeed,
                                                      tripsForRouteFetcher)
 import           TellMeT.Model.Fetcher              (Fetcher (Fetched, Unfetched))
 import           TellMeT.Pages                      (Page)
-import           TellMeT.Util                       (Identifier, MapOf)
+import           TellMeT.Util                       (Identifier, MapList (MapList, unMapList),
+                                                     MapOf, oxfordComma)
 
 -- | Display the page for a given route.  Note that the identifier will
 -- come out of the URL, not out of the model state.
@@ -127,8 +128,8 @@ viewHeader rt trips =
       title t = if tripShortName t == ""
                 then []
                 else [text $ tripShortName t]
-      wheelchair t = viewOptionalFeature "wheelchair" (tripWheelchairAccessible t)
-      bicycle t = viewOptionalFeature "bicycle" (tripBikesAllowed t)
+      wheelchair t = optional_fa_ "wheelchair" (tripWheelchairAccessible t)
+      bicycle t = optional_fa_ "bicycle" (tripBikesAllowed t)
       tripHead t = _th_ $ icon t <> title t <> wheelchair t <> bicycle t
   in tr_ [] ([_th_ [text ""]] <> (tripHead <$> trips))
 
@@ -206,16 +207,6 @@ orderStopGraph preds (x:xs) =
   let preds' = (Set.delete x) <$> preds
   in (x:orderStopGraph preds' xs)
 
-viewOptionalFeature :: MisoString -> Maybe Bool -> [View action]
-viewOptionalFeature _ Nothing = []
-viewOptionalFeature icon (Just True) = [fa_ icon]
-viewOptionalFeature icon (Just False) =
-  [ span_ [ class_ "fa-stack fa-2x" ]
-    [ fa_ (icon <> " fa-stack-1x")
-    , fa_ "ban fa-stack-2x"
-    ]
-  ]
-
 -- | Get a list of distinct service IDs from a list of trips.
 visibleServices :: [Trip] -> [Identifier Service]
 visibleServices = Set.toAscList . Set.fromList . fmap tripServiceId
@@ -230,47 +221,6 @@ visibleDirections trips aService =
                   (Set.singleton $ tripHeadsign t)
       directionMap = unMapList $ foldMap (MapList . tripDir) trips'
   in Map.toList $ oxfordComma <$> directionMap
-
--- | Map of keys to lists, where the Monoid instance appends lists.
-newtype MapList k a = MapList { unMapList :: (Map k a) }
-
-instance (Ord k, Monoid a) => Monoid (MapList k a) where
-  mempty = MapList mempty
-  mappend (MapList l) (MapList r) = MapList $ Map.unionWith (<>) l r
-
-data OxfordComma a = None | One a | Two a a | Many [a]
-
-instance Functor OxfordComma where
-  fmap _ None      = None
-  fmap f (One x)   = One (f x)
-  fmap f (Two x y) = Two (f x) (f y)
-  fmap f (Many xs) = Many (fmap f xs)
-
-oxfordToList :: OxfordComma a -> [a]
-oxfordToList None      = []
-oxfordToList (One x)   = [x]
-oxfordToList (Two x y) = [x, y]
-oxfordToList (Many xs) = xs
-
-instance Monoid (OxfordComma a) where
-  mempty = None
-  mappend None y          = y
-  mappend x None          = x
-  mappend (One x) (One y) = Two x y
-  mappend x y             = Many ((oxfordToList x) <> (oxfordToList y))
-
-oxfordToString :: OxfordComma MisoString -> MisoString
-oxfordToString None = "(nothing)"
-oxfordToString (One x) = x
-oxfordToString (Two x y) = x <> " or " <> y
-oxfordToString (Many l) = more l
-  where more []     = ", or a mistake" -- shouldn't happen
-        more [x]    = ", or " <> x
-        more (x:xs) = x <> ", " <> (more xs)
-
--- | Convert a list of strings by properly inserting commas.
-oxfordComma :: (Foldable t) => t MisoString -> MisoString
-oxfordComma = oxfordToString . foldMap One
 
 -- | Filter a list of trips to those having a given service ID
 -- (if one is known).

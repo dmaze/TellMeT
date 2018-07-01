@@ -3,12 +3,12 @@
 -- | Primitives for the Bootstrap component library.
 module TellMeT.Bootstrap where
 
-import Data.Monoid ((<>))
-import Miso.Html (Attribute, View, text)
-import Miso.Html.Element (a_, button_, div_, nav_, span_)
-import Miso.Html.Property (textProp, class_, href_, type_)
-import Miso.String (MisoString, ms)
-import Network.URI (URI)
+import           Data.Monoid        ((<>))
+import           Miso.Html          (Attribute, View, text)
+import           Miso.Html.Element  (a_, button_, div_, nav_, span_)
+import           Miso.Html.Property (class_, href_, textProp, type_)
+import           Miso.String        (MisoString, ms)
+import           Network.URI        (URI)
 
 -- Getting Started
 
@@ -81,3 +81,21 @@ navbar_brand_ uri = a_ [class_ "navbar-brand", href_ (ms $ show $ uri)]
 -- inside the string.
 fa_ :: MisoString -> View a
 fa_ icon = span_ [class_ $ "fas fa-" <> icon] []
+
+-- |Produce a Font Awesome icon, or a banned icon, or nothing.
+--
+-- If you have a flag that something may or may not be
+-- wheelchair-accessible, you can call this with "wheelchair" and the
+-- flag.  If the flag is @Just True@ then displays an ordinary
+-- wheelchair icon; if it is @Just False@ then a "no wheelchairs"
+-- combined icon; and if it is @Nothing@ then nothing is known and
+-- nothing is displayed.
+optional_fa_ :: MisoString -> Maybe Bool -> [View a]
+optional_fa_ _ Nothing = []
+optional_fa_ icon (Just True) = [fa_ icon]
+optional_fa_ icon (Just False) =
+  [ span_ [ class_ "fa-stack fa-2x" ]
+    [ fa_ (icon <> " fa-stack-1x")
+    , fa_ "ban fa-stack-2x"
+    ]
+  ]
