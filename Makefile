@@ -13,6 +13,8 @@ UI_TARGET := $(UI_BINDIR)/all.js
 
 SHARED_SOURCES := $(shell find shared -name '*.hs' -print)
 
+EXTS := js eot svg ttf woff
+
 all: $(SERVER_TARGET)
 
 clean:
@@ -24,12 +26,16 @@ distclean:
 
 $(UI_TARGET): $(UI_SOURCES) $(SHARED_SOURCES)
 	mkdir dist || true
-	touch dist/_.js
+	touch $(EXTS:%=dist/_.%)
 	$(UI_STACK) build
-	rm dist/_.js
+	rm $(EXTS:%=dist/_.%)
 
-dist/index.js: $(UI_TARGET) webpack/webpack.config.js
+dist/index.js: $(UI_TARGET) webpack/webpack.config.js webpack/node_modules/.bin/webpack
 	cd webpack && yarn run webpack --env.SRCDIR=$(UI_BINDIR)
+
+webpack/node_modules/.bin/webpack: webpack/package.json
+	cd webpack && yarn install
+	touch $@
 
 $(SERVER_TARGET): dist/index.js $(SERVER_SOURCES) $(SHARED_SOURCES)
 	$(SERVER_STACK) build

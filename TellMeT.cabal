@@ -11,6 +11,10 @@ category:             Web
 build-type:           Simple
 cabal-version:        >=1.10
 data-files:           dist/*.js
+                    , dist/*.eot
+                    , dist/*.svg
+                    , dist/*.ttf
+                    , dist/*.woff
 
 library
   ghc-options:        -O2 -Wall

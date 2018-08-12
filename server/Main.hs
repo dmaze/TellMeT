@@ -166,16 +166,6 @@ instance ToHtml a => ToHtml (HtmlPage a) where
       meta_ [ charset_ "utf-8" ]
       meta_ [ name_ "viewport"
             , content_ "width=device-width, initial-scale=1, shrink-to-fit=no" ]
-      link_ [ rel_ "stylesheet"
-            , href_ "https://stackpath.bootstrapcdn.com/bootstrap/4.1.1/css/bootstrap.min.css"
-            , makeAttribute "integrity" "sha384-WskhaSGFgHYWDcbwN70/dfYBj47jz9qbsMId/iRN3ewGhXQFZCSftd1LZCfmhktB"
-            , makeAttribute "crossorigin" "anonymous"
-            ]
-      link_ [ rel_ "stylesheet"
-            , href_ "https://use.fontawesome.com/releases/v5.0.13/css/all.css"
-            , makeAttribute "integrity" "sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp"
-            , makeAttribute "crossorigin" "anonymous"
-            ]
       with (script_ mempty) [ src_ "/static/index.js"
                             , async_ ""
                             , defer_ ""

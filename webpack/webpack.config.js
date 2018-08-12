@@ -3,10 +3,11 @@ const webpack = require('webpack');
 
 module.exports = (env) => ({
     mode: 'production',
-    context: path.resolve(__dirname, '..'),
     entry: {
         index: [
-            env.SRCDIR + '/all.js'
+            env.SRCDIR + '/all.js',
+            'bootstrap/dist/css/bootstrap.min.css',
+            '@fortawesome/fontawesome-free/css/all.css'
         ]
     },
     output: {
@@ -18,6 +19,13 @@ module.exports = (env) => ({
             {
                 test: /\.css$/,
                 use: ['style-loader', 'css-loader']
+            },
+            {
+                test: /\.(eot|svg|ttf|woff|woff2)$/,
+                loader: 'url-loader',
+                options: {
+                    limit: 65536
+                }
             }
         ]
     },
