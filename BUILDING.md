@@ -6,8 +6,8 @@ sequence should come close to working:
 stack --stack-yaml server/stack.yaml setup
 stack --stack-yaml server/stack.yaml install cabal-install alex happy
 stack --stack-yaml ui/stack.yaml setup
-ln -s $(stack --stack-yaml ui/stack.yaml --local-install-root)/bin/all.js \
-  $(stack --stack-yaml server/stack.yaml path --local-install-root)/share/x86_64-osx-ghc-8.0.1/TellMeT-0.1.0.0
+(cd webpack && yarn install)
+make
 ```
 
 (The last line of course depends on your architecture and the actual

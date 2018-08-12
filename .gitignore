@@ -1,2 +1,4 @@
 *~
 .stack*
+/dist
+/webpack/node_modules

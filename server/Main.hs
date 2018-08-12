@@ -97,7 +97,7 @@ main = do
             let port = opts ^. optPort
             putStrLn $ "Running on port " <> (show port)
             path <- getDataDir
-            run port $ logStdout $ app path feed
+            run port $ logStdout $ app (path <> "/dist") feed
     _ -> mapM_ putStrLn errs
 
 type ServerAPI = StaticAPI :<|> RestAPI :<|> ServantRoutes :<|> Raw
@@ -176,7 +176,7 @@ instance ToHtml a => ToHtml (HtmlPage a) where
             , makeAttribute "integrity" "sha384-DNOHZ68U8hZfKXOrtjWvjxusGo9WQnrNx2sqG0tfsghAvtVlRW3tvkXWZh58N9jp"
             , makeAttribute "crossorigin" "anonymous"
             ]
-      with (script_ mempty) [ src_ "/static/all.js"
+      with (script_ mempty) [ src_ "/static/index.js"
                             , async_ ""
                             , defer_ ""
                             ]
