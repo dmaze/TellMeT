@@ -65,9 +65,3 @@ class FeedFetchAction action where
 class PickService action where
   -- |Create an action to pick a single service.
   pickService :: Maybe (Identifier Service) -> action
-
--- |Actions that can choose a direction.
-class PickDirection action where
-  -- |Create an action to pick a direction.  Remember that 'Nothing'
-  -- is a valid direction.
-  pickDirection :: Maybe Int -> action
