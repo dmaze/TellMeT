@@ -15,7 +15,6 @@ import           Miso.Html             (View)
 import           Servant.API           ((:<|>), (:>), Capture, safeLink)
 import           TellMeT.Action.Class  (FeedFetchAction (fetchFeed, fetchTripsForRoute, fetchedAgencies, fetchedRoutes, fetchedServices, fetchedTripsForRoute),
                                         PageAction (goToPage, goToPageLink),
-                                        PickService (pickService),
                                         URIAction (changeURI, handleURIChange))
 import           TellMeT.GTFS          (Agency, Route, Service, Trip)
 import           TellMeT.Model.Fetcher (Fetcher)
@@ -77,9 +76,6 @@ instance FeedFetchAction Action where
 instance PageAction Page Action where
   goToPage = GoToPage
   goToPageLink p = (GoToPage p, pageLink p)
-
-instance PickService Action where
-  pickService = PickService
 
 -- The page-link wiring winds up here.  We have the unfortunate
 -- dependency chain that the Servant types depend on the concrete

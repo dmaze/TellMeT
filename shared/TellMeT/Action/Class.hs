@@ -60,8 +60,3 @@ class FeedFetchAction action where
   fetchedTripsForRoute :: Identifier Route
                        -> Fetcher [Trip]
                        -> action
-
--- | Actions that can reflect a chosen service.
-class PickService action where
-  -- |Create an action to pick a single service.
-  pickService :: Maybe (Identifier Service) -> action

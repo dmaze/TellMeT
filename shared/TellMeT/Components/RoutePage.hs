@@ -21,7 +21,7 @@ import           Miso.Html.Element                  (div_, form_, h1_, table_,
 import           Miso.Html.Property                 (class_, scope_)
 import           Miso.String                        (MisoString, ms)
 
-import           TellMeT.Action.Class               (PageAction, PickService)
+import           TellMeT.Action.Class               (PageAction)
 import           TellMeT.Bootstrap                  (alert_, fa_, optional_fa_)
 import           TellMeT.Components.DirectionPicker (viewPickDirection)
 import           TellMeT.Components.FeedFetcher     (viewAFetch)
@@ -56,14 +56,16 @@ import           TellMeT.Util                       (Identifier, MapList (MapLis
 
 -- | Display the page for a given route.  Note that the identifier will
 -- come out of the URL, not out of the model state.
-viewRoutePage :: (FeedFetcher model, HasFeed model, PickedService model,
-                 PickedDirection model,
-                 PageAction Page action, PickService action)
-              => Identifier Route      -- ^ the route to view
-              -> (Maybe Int -> action) -- ^ create an action when picking a direction
-              -> model
-              -> View action
-viewRoutePage routeId pickDirection model =
+viewRoutePage
+  :: (FeedFetcher model, HasFeed model, PickedService model,
+      PickedDirection model, PageAction Page action)
+  => Identifier Route      -- ^ the route to view
+  -> (Maybe (Identifier Service) -> action)
+                        -- ^ create an action when picking a service
+  -> (Maybe Int -> action) -- ^ create an action when picking a direction
+  -> model
+  -> View action
+viewRoutePage routeId pickService pickDirection model =
   let feed = model ^. theFeed
       theServices = feed ^. services
       aService = model ^. pickedService
@@ -71,24 +73,29 @@ viewRoutePage routeId pickDirection model =
       fetch = model ^. tripsForRouteFetcher . at routeId . non Unfetched
   in case feed ^. routes . at routeId of
     Nothing    -> viewNoRoutePage
-    Just route -> viewARoutePage route aService aDirection theServices pickDirection fetch
+    Just route -> viewARoutePage route aService aDirection theServices
+                 pickService pickDirection fetch
 
 -- | Display an error page for an invalid route ID.
 viewNoRoutePage :: View action
 viewNoRoutePage =
   alert_ "danger" [fa_ "frown", text $ "Uh oh, I don't know that route."]
 
-viewARoutePage :: (PageAction Page action, PickService action)
+viewARoutePage :: (PageAction Page action)
                => Route
                -> Maybe (Identifier Service)
                -> Maybe Int
                -> MapOf Service
+               -> (Maybe (Identifier Service) -> action)
                -> (Maybe Int -> action)
                -> Fetcher [Trip]
                -> View action
-viewARoutePage route aService aDirection theServices pickDirection fetch = div_ []
+viewARoutePage route aService aDirection theServices pickService
+               pickDirection fetch =
+  div_ []
   [ h1_ [] [ viewRouteBadge route ]
-  , viewRouteTrips (routeType route) aService aDirection theServices pickDirection fetch
+  , viewRouteTrips (routeType route) aService aDirection theServices
+    pickService pickDirection fetch
   ]
 
 tripTitle :: Trip -> MisoString
@@ -97,19 +104,21 @@ tripTitle trip = ms $
   then tripShortName trip <> ": " <> tripHeadsign trip
   else tripHeadsign trip
 
-viewRouteTrips :: (PickService action)
-               => RouteType
-               -> Maybe (Identifier Service)
-               -> Maybe Int
-               -> MapOf Service
-               -> (Maybe Int -> action)
-               -> Fetcher [Trip]
-               -> View action
-viewRouteTrips rt aService aDirection theServices pickDirection (Fetched trips) =
+viewRouteTrips
+  :: RouteType
+  -> Maybe (Identifier Service)
+  -> Maybe Int
+  -> MapOf Service
+  -> (Maybe (Identifier Service) -> action)
+  -> (Maybe Int -> action)
+  -> Fetcher [Trip]
+  -> View action
+viewRouteTrips rt aService aDirection theServices pickService
+               pickDirection (Fetched trips) =
   let someServices = do sid <- visibleServices trips
                         theServices ^.. ix sid
       someDirections = visibleDirections trips aService
-      picker = viewPickService aService someServices <>
+      picker = viewPickService aService someServices pickService <>
                viewPickDirection aDirection someDirections pickDirection
       someTrips = visibleTrips aService aDirection trips
       header = viewHeader rt someTrips
@@ -122,7 +131,7 @@ viewRouteTrips rt aService aDirection theServices pickDirection (Fetched trips) 
        , tbody_ [] rows
        ]
       ]
-viewRouteTrips _ _ _ _ _ fetch = viewAFetch "Fetching trips" fetch
+viewRouteTrips _ _ _ _ _ _ fetch = viewAFetch "Fetching trips" fetch
 
 viewHeader :: RouteType -> [Trip] -> View action
 viewHeader rt trips =

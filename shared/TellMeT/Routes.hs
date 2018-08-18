@@ -10,7 +10,8 @@ import           Data.Default                 (def)
 import           Lens.Micro                   ((^.))
 import           Miso                         (View, text)
 
-import           TellMeT.Action               (Action (PickDirection), pageLink)
+import           TellMeT.Action               (Action (PickDirection, PickService),
+                                               pageLink)
 import           TellMeT.Components.Chrome    (viewChrome)
 import           TellMeT.Components.RouteList (viewRouteList)
 import           TellMeT.Components.RoutePage (viewRoutePage)
@@ -24,7 +25,7 @@ viewModel model =
   case model ^. currentPage of
     NoPage        -> view404
     RouteList     -> viewRouteList model
-    RoutePage rid -> viewRoutePage rid PickDirection model
+    RoutePage rid -> viewRoutePage rid PickService PickDirection model
 
 view404 :: View a
 view404 = text "not found"
